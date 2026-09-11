@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RuleRunner — 40k Rules Companion</title>
+<link rel="icon" type="image/svg+xml" href="rulerunner-logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d0f13;
+    --panel: #15181e;
+    --panel-raised: #1b1f27;
+    --border: #262b35;
+    --bone: #e9ebf1;
+    --bone-dim: #a3a9b7;
+    --muted: #6b7280;
+    --blood: #ef4444;
+    --blood-bright: #f87171;
+    --gold: #f5a623;
+    --gold-dim: #c98716;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-full: 999px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  }
+  body.theme-light{
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --panel-raised: #eef0f3;
+    --border: #dfe2e8;
+    --bone: #14161b;
+    --bone-dim: #4a4f5a;
+    --muted: #868c99;
+    --blood: #dc2626;
+    --blood-bright: #ef4444;
+    --gold: #b3720f;
+    --gold-dim: #8f5c0c;
+    --shadow-sm: 0 1px 2px rgba(20,22,30,0.07), 0 2px 8px rgba(20,22,30,0.05);
+    --shadow-md: 0 10px 28px rgba(20,22,30,0.1), 0 2px 8px rgba(20,22,30,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--bone);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+    transition:background-color 0.2s ease, color 0.2s ease;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:0 16px 32px;}
+
+  .topbar{
+    border-bottom:1px solid var(--border);
+    padding:10px 0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .brand-compact{display:flex;align-items:center;gap:8px;}
+  .logo-mark{width:26px;height:26px;color:var(--gold);flex-shrink:0;}
+  .brand-name{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:1.05rem;
+    letter-spacing:-0.01em;
+    color:var(--bone);
+    white-space:nowrap;
+  }
+
+  /* game menu (dropdown) */
+  .game-menu{position:relative;}
+  .game-menu summary{
+    list-style:none;
+    display:flex;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--border);color:var(--bone-dim);
+    font-family:'Inter',sans-serif;font-weight:600;font-size:0.76rem;
+    padding:6px 12px;border-radius:var(--radius-full);cursor:pointer;white-space:nowrap;
+    box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .game-menu summary::-webkit-details-marker{display:none;}
+  .game-menu summary::marker{content:"";}
+  .game-menu summary:hover{border-color:var(--gold-dim);}
+  .game-menu summary:active{transform:scale(0.97);}
+  .game-menu[open] summary{border-color:var(--gold);color:var(--bone);}
+  .chevron{width:10px;height:10px;flex-shrink:0;transition:transform 0.18s ease;}
+  .game-menu[open] .chevron{transform:rotate(180deg);}
+  .game-menu-list{
+    position:absolute;top:calc(100% + 8px);left:0;z-index:20;min-width:210px;
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:5px;box-shadow:var(--shadow-md);
+    animation:menuIn 0.15s ease;
+  }
+  @keyframes menuIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
+  .game-menu-item{
+    padding:8px 12px;font-size:0.82rem;border-radius:var(--radius-sm);color:var(--bone);
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .game-menu-item.active{background:rgba(171,138,74,0.14);color:var(--bone);}
+  .game-menu-item.ghost{color:var(--muted);cursor:default;}
+  .game-menu-item .tag{font-size:0.62rem;color:var(--gold);}
+
+  .header-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+
+  .theme-switch{position:relative;display:inline-flex;align-items:center;gap:7px;cursor:pointer;}
+  .theme-switch input{display:none;}
+  .switch-track{
+    width:42px;height:23px;background:var(--panel-raised);border:1px solid var(--border);
+    border-radius:var(--radius-full);position:relative;transition:background 0.2s ease;flex-shrink:0;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .switch-thumb{
+    position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;
+    background:var(--gold);transition:transform 0.2s ease;
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);
+  }
+  .switch-thumb svg{position:absolute;width:10px;height:10px;color:var(--bg);transition:opacity 0.15s ease;}
+  .switch-thumb .icon-sun{opacity:0;}
+  .switch-thumb .icon-moon{opacity:1;}
+  .theme-switch input:checked ~ .switch-track .switch-thumb{transform:translateX(19px);}
+  .theme-switch input:checked ~ .switch-track .switch-thumb .icon-sun{opacity:1;}
+  .theme-switch input:checked ~ .switch-track .switch-thumb .icon-moon{opacity:0;}
+  .theme-switch input:checked ~ .switch-track{background:rgba(171,138,74,0.22);}
+  .switch-label{font-size:0.74rem;color:var(--bone-dim);font-weight:600;min-width:30px;}
+
+  .mic-btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel-raised);
+    border:1px solid var(--border);
+    color:var(--bone);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:0.8rem;
+    padding:9px 14px;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .mic-btn:hover{border-color:var(--gold-dim);}
+  .mic-btn:active{transform:scale(0.97);}
+  .mic-icon{width:15px;height:15px;flex-shrink:0;}
+  .mic-btn.live{
+    background:linear-gradient(180deg, rgba(239,68,68,0.18), rgba(239,68,68,0.08));
+    border-color:var(--blood-bright);color:var(--blood-bright);
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .mic-btn.live .dot{background:var(--blood-bright);animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(184,57,47,0.55);}
+    50%{ box-shadow:0 0 0 6px rgba(184,57,47,0);}
+  }
+
+  /* edition selector */
+  .edition-row{
+    margin-top:8px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .edition-label{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:0.66rem;
+    letter-spacing:0.02em;
+    color:var(--gold);
+    white-space:nowrap;
+  }
+  .edition-pills{display:flex;gap:5px;}
+  .pill{
+    background:var(--panel);
+    border:1px solid var(--border);
+    color:var(--bone-dim);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:0.76rem;
+    padding:5px 12px;
+    border-radius:var(--radius-full);
+    cursor:pointer;
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+  }
+  .pill:hover{border-color:var(--gold-dim);}
+  .pill:active:not(:disabled){transform:scale(0.96);}
+  .pill.active{
+    background:rgba(171,138,74,0.14);
+    border-color:var(--gold);
+    color:var(--bone);
+    box-shadow:var(--shadow-sm);
+  }
+  .pill:disabled{cursor:default;}
+  .pill.ghost{opacity:0.45;border-style:dashed;}
+  .pill .tag{
+    font-size:0.6rem;
+    color:var(--gold);
+    margin-left:4px;
+    opacity:0.85;
+  }
+
+  .caveat{
+    margin-top:8px;
+    padding:9px 12px;
+    border:1px solid var(--gold-dim);
+    background:rgba(171,138,74,0.07);
+    color:var(--bone-dim);
+    font-size:0.78rem;
+    border-radius:var(--radius-sm);
+    line-height:1.45;
+  }
+  .caveat a{color:var(--gold);}
+  .caveat.unsupported{display:none;border-color:var(--blood-bright);background:rgba(140,42,36,0.08);}
+
+  .fallback{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .input-wrap{position:relative;flex:1;min-width:160px;display:flex;align-items:center;}
+  .input-wrap .search-icon{position:absolute;left:11px;width:14px;height:14px;color:var(--muted);pointer-events:none;}
+  .fallback input{
+    width:100%;
+    background:var(--panel);border:1px solid var(--border);color:var(--bone);
+    padding:9px 12px 9px 32px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.88rem;
+    transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .fallback input:focus{outline:none;border-color:var(--gold-dim);box-shadow:var(--shadow-sm);}
+  .fallback button{
+    background:var(--panel-raised);border:1px solid var(--border);color:var(--bone);
+    padding:9px 15px;border-radius:var(--radius-sm);font-weight:600;font-size:0.82rem;cursor:pointer;
+    flex-shrink:0;box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, transform 0.12s ease;
+  }
+  .fallback button:hover{border-color:var(--gold-dim);}
+  .fallback button:active{transform:scale(0.96);}
+  .scan-feedback{
+    margin-top:6px;font-size:0.76rem;color:var(--muted);min-height:1.1em;
+    opacity:0;transition:opacity 0.25s ease;
+  }
+  .scan-feedback.show{opacity:1;}
+
+  .col-title{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:0.72rem;letter-spacing:0.02em;color:var(--gold);
+    margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);
+  }
+
+  #feed{display:flex;flex-direction:column;gap:10px;}
+  .empty-feed{
+    color:var(--muted);font-size:0.85rem;padding:22px 14px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--radius-sm);
+  }
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--gold);
+    border-radius:var(--radius-sm);padding:12px 14px;animation:slideIn 0.25s ease;
+    box-shadow:var(--shadow-sm);
+  }
+  .hero-card{
+    background:var(--panel);border:1px solid var(--border);border-left:5px solid var(--gold);
+    border-radius:var(--radius-md);padding:14px 16px;animation:slideIn 0.3s ease;
+    box-shadow:var(--shadow-md);
+  }
+  .hero-card .card-title{font-size:1.08rem;}
+  .hero-card .card-text{font-size:0.88rem;}
+  @keyframes slideIn{ from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
+  .card-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px;}
+  .card-title{font-family:'Inter',sans-serif;font-weight:700;font-size:0.95rem;color:var(--bone);}
+  .card-phase{font-size:0.66rem;color:var(--gold);letter-spacing:0.02em;white-space:nowrap;flex-shrink:0;}
+  .card-text{font-size:0.85rem;color:var(--bone-dim);margin:0;}
+  .card-trigger{margin-top:6px;font-size:0.7rem;color:var(--muted);}
+  .card-trigger span{color:var(--gold);font-style:italic;}
+  .card-verify{margin-top:6px;font-size:0.7rem;}
+  .card-verify a{color:var(--gold);text-decoration:none;border-bottom:1px dotted var(--gold-dim);}
+  .card-verify a:hover{color:var(--bone);}
+
+  #recent-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+  .recent-item{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    background:var(--panel);border:1px solid var(--border);border-left:2px solid var(--gold);
+    border-radius:var(--radius-sm);padding:7px 12px;cursor:pointer;
+    transition:opacity 0.3s ease, border-color 0.15s ease, background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .recent-item:hover{opacity:1 !important;border-color:var(--gold);background:var(--panel-raised);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+  .recent-item:active{transform:translateY(0) scale(0.98);}
+  .recent-item .recent-title{font-family:'Inter',sans-serif;font-weight:700;font-size:0.8rem;color:var(--bone-dim);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .recent-item .recent-phase{font-size:0.6rem;color:var(--muted);letter-spacing:0.02em;white-space:nowrap;flex-shrink:0;}
+
+  .browse-toggle{
+    margin-top:20px;background:none;border:none;color:var(--gold);font-family:'Inter',sans-serif;font-weight:700;
+    font-size:0.76rem;letter-spacing:0.02em;cursor:pointer;padding:0;
+    display:flex;align-items:center;gap:6px;
+  }
+  .browse-toggle .chevron{width:9px;height:9px;transform:rotate(-90deg);}
+  .browse-toggle.open .chevron{transform:rotate(0deg);}
+  #browse-panel{display:none;margin-top:12px;}
+  #browse-search{
+    width:100%;background:var(--panel);border:1px solid var(--border);color:var(--bone);
+    padding:9px 12px 9px 32px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.86rem;margin-bottom:12px;
+    transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  #browse-search:focus{outline:none;border-color:var(--gold-dim);box-shadow:var(--shadow-sm);}
+  #browse-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:600px){ #browse-list{grid-template-columns:1fr;} }
+  .browse-item{background:var(--panel);border:1px solid var(--border);padding:10px 13px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);}
+  .browse-item .card-title{font-size:0.86rem;}
+  .browse-item .card-text{font-size:0.8rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <details class="game-menu" id="gameMenu">
+      <summary>Warhammer 40,000
+        <svg class="chevron" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5L6 6.5L11 1.5"/></svg>
+      </summary>
+      <div class="game-menu-list">
+        <div class="game-menu-item active">Warhammer 40,000</div>
+        <div class="game-menu-item ghost">More games <span class="tag">soon</span></div>
+      </div>
+    </details>
+
+    <div class="brand-compact">
+      <svg class="logo-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="32" cy="32" r="24"/>
+        <line x1="32" y1="3" x2="32" y2="10"/>
+        <line x1="32" y1="54" x2="32" y2="61"/>
+        <line x1="3" y1="32" x2="10" y2="32"/>
+        <line x1="54" y1="32" x2="61" y2="32"/>
+        <path d="M20 28c0-8 5.5-14 12-14s12 6 12 14c0 5-2 8-3.5 10.5-1 1.7-1.5 3-1.5 4.5v3c0 1.5-1 2.5-2.5 2.5h-9c-1.5 0-2.5-1-2.5-2.5v-3c0-1.5-.5-2.8-1.5-4.5C22 36 20 33 20 28z"/>
+        <circle cx="26.5" cy="28" r="2.1" fill="currentColor" stroke="none"/>
+        <circle cx="37.5" cy="28" r="2.1" fill="currentColor" stroke="none"/>
+        <line x1="27" y1="44" x2="27" y2="47"/>
+        <line x1="32" y1="44.5" x2="32" y2="48"/>
+        <line x1="37" y1="44" x2="37" y2="47"/>
+      </svg>
+      <span class="brand-name">RuleRunner</span>
+    </div>
+
+    <label class="theme-switch">
+      <input type="checkbox" id="themeCheckbox">
+      <span class="switch-track">
+        <span class="switch-thumb">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+      </span>
+      <span class="switch-label" id="themeLabel">Dark</span>
+    </label>
+  </div>
+
+  <div class="edition-row">
+    <span class="edition-label">Edition</span>
+    <div class="edition-pills" id="editionPills">
+      <button class="pill" data-ed="9">9th</button>
+      <button class="pill" data-ed="10">10th</button>
+      <button class="pill active" data-ed="11">11th <span class="tag">current</span></button>
+    </div>
+  </div>
+
+  <div class="fallback">
+    <button class="mic-btn" id="micBtn">
+      <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+      <span class="dot"></span>
+      <span id="micLabel">Listen</span>
+    </button>
+    <div class="input-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="manualInput" placeholder="Type or paste a line from the table talk…">
+    </div>
+    <button id="scanBtn">Scan</button>
+  </div>
+  <div class="scan-feedback" id="scanFeedback"></div>
+
+  <div class="caveat unsupported" id="unsupportedNotice">
+    This browser doesn't support live speech recognition (works best in Chrome or Edge). Use the text box below instead — paste or type what's being said and hit Scan.
+  </div>
+  <div class="caveat unsupported" id="insecureNotice">
+    This page was opened as a local file (<code>file://…</code>), and browsers block microphone access on local files for security reasons. Live listening needs the page served over <code>https://</code> or <code>localhost</code> — try hosting it (e.g. GitHub Pages, Netlify) or running a quick local server (<code>python3 -m http.server</code> in the file's folder, then open <code>http://localhost:8000</code>). The text box below works fine either way.
+  </div>
+  <div class="caveat unsupported" id="micErrorNotice"></div>
+
+  <h2 class="col-title">Rules Surfaced</h2>
+  <div id="hero-slot">
+    <div class="empty-feed" id="emptyFeed">No rules triggered yet. Start listening, or type a phrase above — try "can I overwatch that charge?"</div>
+  </div>
+  <div id="recent-list"></div>
+
+  <button class="browse-toggle" id="browseToggle">
+    <svg class="chevron" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5L6 6.5L11 1.5"/></svg>
+    Browse all rules
+  </button>
+  <div id="browse-panel">
+    <div class="input-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="browse-search" placeholder="Filter the full index…">
+    </div>
+    <div id="browse-list"></div>
+  </div>
+
+</div>
+
+<script>
+// ---------- Wahapedia references, per edition ----------
+// Wahapedia maintains a separate archived core-rules page per edition, which stays
+// current with GW's own FAQs/errata far better than any static list ever can.
+// Every card links out to the live page rather than embedding scraped text, so you
+// always get the actual current wording — this app only tells you WHERE to look.
+const WAHAPEDIA_BASE = {
+  9:  "https://wahapedia.ru/wh40k9ed/the-rules/core-rules/",
+  10: "https://wahapedia.ru/wh40k10ed/the-rules/core-rules/",
+  11: "https://wahapedia.ru/wh40k11ed/the-rules/core-rules/",
+};
+
+// ---------- Rules database ----------
+// Independently-written rule summaries, phrased as plain reference rules
+// rather than change notes. `editions` holds per-edition wording; a missing
+// key means that concept isn't a distinct core rule in that edition.
+const RULES = [
+  { id:"move", title:"Move", phase:"Movement", keywords:["move","movement phase","normal move"],
+    editions:{
+      9:"Each unit can move up to its Move characteristic in inches. It can't move within Engagement Range of an enemy unit unless charging, and must end the move in Unit Coherency.",
+      10:"Each unit can move up to its Move characteristic in inches. A unit can't move through enemy models or terrain it can't traverse, and must end in Unit Coherency.",
+      11:"Each unit can move up to its Move characteristic in inches. Models can move freely through friendly models, and rotating a model on the spot costs no movement." }},
+
+  { id:"advance", title:"Advance", phase:"Movement", keywords:["advance","advancing"],
+    editions:{
+      9:"Roll a D6 and add it to the unit's Move for this phase. A unit that advances can't charge later this turn, and can only shoot with Assault weapons, usually at a penalty.",
+      10:"Roll a D6 and add it to the unit's Move for this phase. A unit that advances can't shoot this turn (unless an ability says otherwise) and can't charge later this turn.",
+      11:"Roll a D6 and add it to the unit's Move for this phase. Advancing locks out shooting and charging this turn unless a specific ability overrides it." }},
+
+  { id:"fallback", title:"Fall Back", phase:"Movement", keywords:["fall back","falling back"],
+    editions:{
+      9:"A unit within Engagement Range of an enemy can fall back to move out of combat. It can't shoot or charge this turn unless an ability says otherwise.",
+      10:"A unit within Engagement Range of an enemy can fall back to move away and out of combat. It can't shoot or charge this turn unless an ability says otherwise.",
+      11:"A unit within Engagement Range of an enemy can fall back to move away and out of combat. It can't shoot or charge this turn unless an ability says otherwise. Engagement Range is 2\" this edition." }},
+
+  { id:"desperate-escape", title:"Desperate Escape", phase:"Movement", keywords:["desperate escape"],
+    editions:{
+      9:"If a unit falls back while below its starting number of models, each model must pass a test or be destroyed.",
+      10:"If a unit falls back while below its Starting Strength (or through terrain requiring it), each model must pass a Desperate Escape test — a D6 that fails on a 1, or on a 1-2 if under-strength — or be destroyed.",
+      11:"If a unit falls back while below its Starting Strength, each model must pass a Desperate Escape test or be destroyed, following the same D6 structure as 10th edition." }},
+
+  { id:"difficult-terrain", title:"Difficult Terrain", phase:"Movement", keywords:["difficult terrain","dense terrain"],
+    editions:{
+      9:"Difficult terrain features can impose movement penalties, such as a reduced Move characteristic. The exact effect is defined by the specific terrain feature or mission pack in play.",
+      10:"Difficult terrain doesn't apply a flat movement penalty by default. Each terrain feature carries its own printed rules — check the terrain's datasheet or the mission's terrain rules for its effect.",
+      11:"Difficult ground effects remain feature-specific rather than universal — check the printed rules on the terrain feature itself, alongside Cover and Hidden for its other effects." }},
+
+  { id:"deep-strike", title:"Deep Strike", phase:"Movement", keywords:["deep strike","deep striking"],
+    editions:{
+      9:"A unit with Deep Strike arriving from Reserves can be set up anywhere on the battlefield more than 9 inches from all enemy models, instead of entering from a table edge.",
+      10:"A unit with Deep Strike that starts in Reserves can be set up anywhere on the battlefield more than 9 inches horizontally from all enemy models, instead of arriving from a table edge.",
+      11:"A unit with Deep Strike that starts in Reserves can be set up anywhere on the battlefield more than 9 inches from all enemy models, instead of arriving from a table edge." }},
+
+  { id:"strategic-reserves", title:"Strategic Reserves", phase:"Movement", keywords:["strategic reserves","in reserve","reserves"],
+    editions:{
+      9:"A portion of your army, limited by mission rules, can start in Strategic Reserves and arrive later from your own table edge or via Deep Strike, rather than deploying on turn one.",
+      10:"Units placed in Strategic Reserves don't start on the battlefield. They can arrive from turn 2 onward, from your own table edge, subject to points-value limits set by the mission.",
+      11:"Units placed in Strategic Reserves don't start on the battlefield and arrive from turn 2 onward, from your own table edge. Reserve limits are set against the mission's Detachment Points budget." }},
+
+  { id:"overwatch", title:"Overwatch", phase:"Shooting", keywords:["overwatch"],
+    editions:{
+      9:"Spend a Command Point on the Overwatch Stratagem to let a unit shoot at an enemy that moves, advances, charges, or falls back near it, as if it were your Shooting phase. It only hits on unmodified 6s.",
+      10:"Spend a Stratagem to let a unit shoot at an enemy unit as it moves, advances, charges, or falls back nearby, as if it were the Shooting phase. It only hits on unmodified 6s.",
+      11:"Spend a Stratagem to let a unit shoot at an enemy unit as it moves, advances, charges, or falls back nearby, as if it were the Shooting phase, hitting only on unmodified 6s. A unit can only benefit from one Stratagem per phase." }},
+
+  { id:"shoot", title:"Shoot", phase:"Shooting", keywords:["shooting phase","shoot","ranged attack","to hit","hit roll"],
+    editions:{
+      9:"Pick an eligible unit and one or more valid, visible targets in range. Roll to hit, roll to wound, let the opponent allocate wounds and take saves, then resolve damage.",
+      10:"Pick an eligible unit and one or more valid targets in range and visible. Roll to hit, roll to wound, the opponent allocates and makes saving throws, then resolve any damage and mortal wounds.",
+      11:"Pick an eligible unit and one or more valid targets in range and visible. Roll to hit — applying the -1 penalty if the target is in Cover — then roll to wound, the opponent saves, and you resolve damage." }},
+
+  { id:"line-of-sight", title:"Line of Sight", phase:"Shooting", keywords:["line of sight","visible","can i see"],
+    editions:{
+      9:"A model can see another model if any part of it is visible when you look from the shooting model's position. Terrain and other models can block this.",
+      10:"A model can see another model if any part of it is visible when you look from the shooting model's location. Terrain, other models, and unit abilities can block or grant visibility.",
+      11:"A model can see another model if any part of it is visible when you look from the shooting model's location, subject to the Hidden status overriding visibility for qualifying units in terrain." }},
+
+  { id:"cover", title:"Cover", phase:"Shooting", keywords:["cover","in cover","benefit of cover"],
+    editions:{
+      9:"A unit with a model within or behind cover-granting terrain, and not within Engagement Range of the enemy, gets +1 to its armour saves against ranged attacks.",
+      10:"A unit with any model within or behind an area of terrain providing cover, and not within Engagement Range of the enemy, gets +1 to its armour saves against ranged attacks.",
+      11:"A unit with any model within or behind terrain that provides Cover imposes a -1 penalty to the Ballistic Skill of units shooting at it, rather than boosting its own save." }},
+
+  { id:"plunging-fire", title:"Plunging Fire", phase:"Shooting", keywords:["plunging fire"],
+    editions:{
+      11:"A unit firing from an elevated position down at a target below it gets +1 to its Ballistic Skill for that attack, rewarding units that hold the high ground." }},
+
+  { id:"hidden", title:"Hidden", phase:"Shooting", keywords:["hidden status","is it hidden"],
+    editions:{
+      11:"An Infantry, Beast, or Swarm unit that is in Cover and hasn't fired a weapon this phase gains the Hidden status. Enemy units more than 15 inches away can't target a Hidden unit at all." }},
+
+  { id:"blast", title:"Blast", phase:"Shooting", keywords:["blast weapon","blast"],
+    editions:{
+      9:"Weapons with the Blast ability get extra attacks against larger units, with the bonus set by a banded table based on the target unit's size.",
+      10:"Weapons with the Blast ability get +1 attack for every full 5 models in the target unit. Blast weapons can't be used to target a unit within Engagement Range of any of your units.",
+      11:"Weapons with the Blast ability get +1 attack for every full 5 models in the target unit. Blast weapons can't be used to target a unit within Engagement Range of any of your units." }},
+
+  { id:"rapid-fire", title:"Rapid Fire", phase:"Shooting", keywords:["rapid fire"],
+    editions:{
+      9:"A weapon with Rapid Fire X gets +X attacks when the target is within half the weapon's range.",
+      10:"A weapon with Rapid Fire X gets +X attacks when the target is within half the weapon's range.",
+      11:"A weapon with Rapid Fire X gets +X attacks when the target is within half the weapon's range." }},
+
+  { id:"sustained-hits", title:"Sustained Hits", phase:"Shooting", keywords:["sustained hits"],
+    editions:{
+      10:"On a Critical Hit (an unmodified 6 to hit, unless stated otherwise), the attack scores that many additional hits automatically — Sustained Hits X means X extra hits.",
+      11:"On a Critical Hit (an unmodified 6 to hit, unless stated otherwise), the attack scores that many additional hits automatically — Sustained Hits X means X extra hits." }},
+
+  { id:"lethal-hits", title:"Lethal Hits", phase:"Shooting", keywords:["lethal hits"],
+    editions:{
+      10:"A Critical Hit automatically wounds the target, skipping the need to roll to wound for that attack.",
+      11:"A Critical Hit automatically wounds the target, skipping the need to roll to wound for that attack." }},
+
+  { id:"devastating-wounds", title:"Devastating Wounds", phase:"Shooting", keywords:["devastating wounds"],
+    editions:{
+      10:"A Critical Wound (an unmodified 6 to wound) is allocated as a mortal wound instead of normal damage, and armour or invulnerable saves can't be taken against it.",
+      11:"A Critical Wound (an unmodified 6 to wound) is allocated as a mortal wound instead of normal damage, and armour or invulnerable saves can't be taken against it." }},
+
+  { id:"charge", title:"Charge", phase:"Charge", keywords:["charge","charge phase","declare a charge","charging"],
+    editions:{
+      9:"Declare a charge against an enemy unit within 12 inches, then roll 2D6. If the result is enough to bring every charging model within Engagement Range of the target, the charge succeeds and models move in.",
+      10:"Declare a charge against an enemy unit within 12 inches, then roll 2D6. If the result is enough to bring every charging model within Engagement Range of the target, the charge succeeds and models move in.",
+      11:"Roll 2D6 for charge distance, then select your charge target using that result. If the distance is enough to bring every charging model within the 2\" Engagement Range of the target, the charge succeeds." }},
+
+  { id:"heroic-intervention", title:"Heroic Intervention", phase:"Charge", keywords:["heroic intervention"],
+    editions:{
+      9:"Certain units can move a short distance to pile into a fight when an enemy charge ends near them, even though it isn't their turn.",
+      10:"Certain units can move up to 6 inches, charge-move style, when an enemy unit ends a charge move within range, even though it isn't their turn, letting them pile into the fight.",
+      11:"Certain units can move up to 6 inches, charge-move style, when an enemy unit ends a charge move within range, even though it isn't their turn, measured against the 2\" Engagement Range." }},
+
+  { id:"fight", title:"Fight", phase:"Fight", keywords:["fight phase","melee","fighting","to wound","wound roll"],
+    editions:{
+      9:"Units fight in a defined order: charging units first, then remaining units alternate between players. Each model piles in up to 3 inches before making its melee attacks.",
+      10:"Units fight in an order based on who charged, then remaining units alternate between players. Each fighting model can move up to 3 inches (pile in), then makes its melee attacks.",
+      11:"Units fight in an order based on who charged, then remaining units alternate between players. Each fighting model can move up to 3 inches (pile in), then makes its melee attacks." }},
+
+  { id:"pile-in", title:"Pile In", phase:"Fight", keywords:["pile in","piling in"],
+    editions:{
+      9:"Before attacking, each model can move up to 3 inches toward the closest enemy model, ending closer to it than where it started.",
+      10:"Before making melee attacks, each model can move up to 3 inches toward the closest enemy model, ending closer to that enemy than where it started.",
+      11:"Before making melee attacks, each model can move up to 3 inches toward the closest enemy model, ending closer to that enemy than where it started." }},
+
+  { id:"consolidate", title:"Consolidate", phase:"Fight", keywords:["consolidate","consolidation"],
+    editions:{
+      9:"After fighting, a unit's models can move up to 3 inches, ending closer to the nearest enemy unit or an objective.",
+      10:"After a unit finishes its melee attacks, its models can move up to 3 inches, ending closer to the nearest enemy unit, or toward an objective marker if no enemy is in range.",
+      11:"After a unit finishes its melee attacks, its models can move up to 3 inches, ending closer to the nearest enemy unit, or toward the terrain relevant to a Mission Action if no enemy is in range." }},
+
+  { id:"engagement-range", title:"Engagement Range", phase:"Fight", keywords:["engagement range"],
+    editions:{
+      9:"Engagement Range extends 1 inch horizontally from an enemy model, with a taller vertical allowance. Being within it restricts falling back and most shooting.",
+      10:"Engagement Range extends 1 inch horizontally, and up to 5 inches vertically, from an enemy model. Being within it restricts falling back, most shooting, and triggers combat rules.",
+      11:"Engagement Range extends 2 inches from an enemy model. Being within it restricts falling back, most shooting, and triggers combat rules." }},
+
+  { id:"feel-no-pain", title:"Feel No Pain", phase:"Fight", keywords:["feel no pain","fnp"],
+    editions:{
+      9:"When a model with Feel No Pain X+ would lose a wound from a failed save or a mortal wound, roll a D6. On a roll of X+, that wound isn't lost at all.",
+      10:"When a model with Feel No Pain X+ would lose a wound, roll a D6 for each point of damage. On a result of X or more, that point of damage is ignored.",
+      11:"When a model with Feel No Pain X+ would lose a wound, roll a D6 for each point of damage. On a result of X or more, that point of damage is ignored." }},
+
+  { id:"battle-shock", title:"Battle-shock / Morale", phase:"Command", keywords:["battle-shock","battleshock","morale","combat attrition"],
+    editions:{
+      9:"Combat Attrition: a unit below half its starting strength takes a Leadership-based test each Command phase. Failure can cause extra models to flee the unit.",
+      10:"If a unit is below its Starting Strength at the start of the Command phase, roll 2D6. If the result is less than the unit's current Leadership, it becomes Battle-shocked: it loses access to Stratagems and scores only half Objective Control until the next Command phase.",
+      11:"If a unit is below its Starting Strength at the start of the Command phase, roll 2D6. If the result is less than the unit's current Leadership, it becomes Battle-shocked, losing access to Stratagems until the next Command phase." }},
+
+  { id:"objective-control", title:"Objective Control (OC)", phase:"Scoring", keywords:["objective control","oc","control an objective","holding the objective"],
+    editions:{
+      9:"Objective control is based on model count rather than a stat: most models count as 1, with Vehicles, Monsters, and Characters counting for more, compared between the units in range.",
+      10:"A unit contributes its models' combined OC characteristic to contest or control an objective marker within range. Whoever has the higher total OC on the objective controls it; equal totals mean no one controls it.",
+      11:"A unit's OC characteristic determines who can perform and contest Mission Actions on a piece of terrain, replacing the static objective-marker model of previous editions." }},
+
+  { id:"mission-actions", title:"Mission Actions", phase:"Scoring", keywords:["hold terrain","clear the location","mission action"],
+    editions:{
+      11:"Missions are scored through special actions performed on terrain, such as holding a piece of ground or clearing an enemy from a location, rather than static objective markers." }},
+
+  { id:"detachments", title:"Detachments & Detachment Points", phase:"Army Building", keywords:["detachment points","multiple detachments","combine detachments"],
+    editions:{
+      11:"An army list can combine multiple Detachments within a Detachment Points budget, mixing and matching the Stratagems and Enhancements each one brings, rather than picking a single Detachment for the whole army." }},
+
+  { id:"command-points", title:"Command Points & Stratagems", phase:"Command", keywords:["command points","cp","stratagem"],
+    editions:{
+      9:"Command Points are earned per battle round and spent on Stratagems — timed rules that alter what's happening on the table, such as boosting a save or granting extra attacks.",
+      10:"Command Points are spent to use Stratagems — special rules activated at specific timing points to alter what's happening on the table, such as boosting a save or granting extra attacks.",
+      11:"Command Points are spent to use Stratagems. A single unit can only benefit from one Stratagem per phase." }},
+
+  { id:"invulnerable-save", title:"Invulnerable Save", phase:"General", keywords:["invulnerable save","invuln","invulnerable"],
+    editions:{
+      9:"An invulnerable save is used instead of a normal armour save and isn't affected by AP. A model uses whichever save is better for a given attack.",
+      10:"An invulnerable save is used instead of a normal armour save and isn't affected by AP. A model uses whichever save is better for a given attack.",
+      11:"An invulnerable save is used instead of a normal armour save and isn't affected by AP. A model uses whichever save is better for a given attack." }},
+
+  { id:"mortal-wounds", title:"Mortal Wounds", phase:"General", keywords:["mortal wounds","mortal wound"],
+    editions:{
+      9:"Mortal wounds are allocated directly to a unit, removing wounds without any save roll, aside from abilities that explicitly work against mortal wounds.",
+      10:"Mortal wounds are allocated directly to a unit, removing wounds without any save roll, aside from abilities that explicitly work against mortal wounds, such as some Feel No Pain.",
+      11:"Mortal wounds are allocated directly to a unit, removing wounds without any save roll, aside from abilities that explicitly work against mortal wounds." }},
+
+  { id:"terrain-traits", title:"Terrain Traits", phase:"General", keywords:["terrain trait","obscuring","light cover"],
+    editions:{
+      9:"Terrain features carry specific traits, such as Area Terrain or Obscuring, defined by the mission or terrain rules in play rather than one universal terrain rule.",
+      10:"Terrain features have specific traits — Light Cover, Heavy Cover, or Obscuring — printed in the mission or terrain rules, which define exactly what benefits they grant.",
+      11:"Terrain features have specific printed traits that combine with Cover, Plunging Fire, and Hidden to define exactly how that piece of terrain plays." }},
+
+  { id:"flying", title:"Flying (FLY keyword)", phase:"Movement", keywords:["flying","fly keyword","flyer movement"],
+    editions:{
+      11:"A unit with the FLY keyword subtracts 2 inches from its maximum move but ignores vertical distance entirely, letting it pass over terrain and buildings without measuring climbs and drops." }},
+
+  { id:"unit-coherency", title:"Unit Coherency", phase:"General", keywords:["unit coherency","coherency"],
+    editions:{
+      9:"Every model in a unit must be within 2 inches of at least one other model from that unit.",
+      10:"Every model in a unit must be within 2 inches horizontally and 6 inches vertically of at least one other model in that unit. Units of 7 or fewer models must all be mutually connected; larger units need each model near at least 2 others.",
+      11:"Every model in a unit must be within 2 inches horizontally and 6 inches vertically of at least one other model in that unit. Units of 7 or fewer models must all be mutually connected; larger units need each model near at least 2 others." }},
+
+  // ---- Weapon abilities ----
+  { id:"twin-linked", title:"Twin-linked", phase:"Weapon Ability", keywords:["twin-linked","twin linked"],
+    editions:{
+      10:"When making an attack with this weapon, you can re-roll the wound roll.",
+      11:"When making an attack with this weapon, you can re-roll the wound roll." }},
+
+  { id:"ignores-cover", title:"Ignores Cover", phase:"Weapon Ability", keywords:["ignores cover"],
+    editions:{
+      10:"Attacks made with this weapon ignore the target's bonus to its saving throw from Cover.",
+      11:"Attacks made with this weapon ignore the -1 to-hit penalty that a target in Cover would otherwise impose." }},
+
+  { id:"indirect-fire", title:"Indirect Fire", phase:"Weapon Ability", keywords:["indirect fire"],
+    editions:{
+      10:"This weapon can target units it doesn't have line of sight to. Such attacks are made at -1 to hit, and the target always counts as being in Cover against them.",
+      11:"This weapon can target units it doesn't have line of sight to. Such attacks are made at -1 to hit, and the target always counts as being in Cover against them." }},
+
+  { id:"torrent", title:"Torrent", phase:"Weapon Ability", keywords:["torrent"],
+    editions:{
+      10:"Attacks made with this weapon automatically hit their target — skip the hit roll entirely.",
+      11:"Attacks made with this weapon automatically hit their target — skip the hit roll entirely." }},
+
+  { id:"melta", title:"Melta", phase:"Weapon Ability", keywords:["melta","melta weapon"],
+    editions:{
+      10:"If the target is within half this weapon's range, add the melta value to the Damage characteristic of each successful wound.",
+      11:"If the target is within half this weapon's range, add the melta value to the Damage characteristic of each successful wound." }},
+
+  { id:"anti-x", title:"Anti-X", phase:"Weapon Ability", keywords:["anti-infantry","anti-vehicle","anti-monster","anti-x"],
+    editions:{
+      10:"Written as Anti-[Keyword] X+. Against a unit with the named keyword, any wound roll of X or more automatically scores a Critical Wound, regardless of the weapon's actual Strength versus Toughness.",
+      11:"Written as Anti-[Keyword] X+. Against a unit with the named keyword, any wound roll of X or more automatically scores a Critical Wound, regardless of the weapon's actual Strength versus Toughness." }},
+
+  { id:"extra-attacks", title:"Extra Attacks", phase:"Weapon Ability", keywords:["extra attacks"],
+    editions:{
+      10:"A weapon with this ability is used in addition to a model's other weapons, rather than being selected instead of them, and doesn't require using the Attack characteristic pool.",
+      11:"A weapon with this ability is used in addition to a model's other weapons, rather than being selected instead of them." }},
+
+  { id:"precision", title:"Precision", phase:"Weapon Ability", keywords:["precision","precision weapon"],
+    editions:{
+      10:"Successful hits with this weapon can be allocated to a Character model within the target unit, bypassing the normal closest-model wound allocation order.",
+      11:"Successful hits with this weapon can be allocated to a Character model within the target unit, bypassing the normal closest-model wound allocation order." }},
+
+  { id:"lance", title:"Lance", phase:"Weapon Ability", keywords:["lance","lance weapon"],
+    editions:{
+      10:"If the bearer made a charge move this turn, add 1 to wound rolls for this weapon in the Fight phase.",
+      11:"If the bearer made a charge move this turn, add 1 to wound rolls for this weapon in the Fight phase." }},
+
+  { id:"hazardous", title:"Hazardous", phase:"Weapon Ability", keywords:["hazardous","hazardous weapon"],
+    editions:{
+      10:"After a model attacks with this weapon, roll a D6 for each model that did so. On a 1, that model's unit suffers mortal wounds from the weapon overheating or malfunctioning.",
+      11:"After a model attacks with this weapon, roll a D6 for each model that did so. On a 1, that model's unit suffers mortal wounds from the weapon overheating or malfunctioning." }},
+
+  { id:"one-shot", title:"One Shot", phase:"Weapon Ability", keywords:["one shot","one-shot","one shot weapon"],
+    editions:{
+      10:"This weapon can only be selected to shoot with once per battle.",
+      11:"This weapon can only be selected to shoot with once per battle." }},
+
+  { id:"assault-weapon", title:"Assault (weapon ability)", phase:"Weapon Ability", keywords:["assault","assault weapon"],
+    editions:{
+      10:"A model can shoot this weapon even if its unit Advanced this turn.",
+      11:"A model can shoot this weapon even if its unit Advanced this turn." }},
+
+  { id:"heavy-weapon", title:"Heavy (weapon ability)", phase:"Weapon Ability", keywords:["heavy","heavy weapon"],
+    editions:{
+      10:"Add 1 to the hit roll for this weapon if the bearer's unit Remained Stationary this turn.",
+      11:"Add 1 to the hit roll for this weapon if the bearer's unit Remained Stationary this turn." }},
+
+  { id:"pistol-weapon", title:"Pistol", phase:"Weapon Ability", keywords:["pistol","pistol weapon"],
+    editions:{
+      10:"A model can shoot this weapon even while its unit is within Engagement Range of the enemy, targeting only the unit it's fighting.",
+      11:"A model can shoot this weapon even while its unit is within Engagement Range of the enemy, targeting only the unit it's fighting." }},
+
+  // ---- Broader core concepts ----
+  { id:"battle-round", title:"Battle Round & Phases", phase:"General", keywords:["battle round","turn order","phases of a turn"],
+    editions:{
+      9:"Each battle round, both players take a turn made up of Movement, Psychic, Shooting, Charge, Fight, and Morale phases, in that order.",
+      10:"Each battle round, both players take a turn made up of the Command, Movement, Shooting, Charge, and Fight phases, in that order.",
+      11:"Each battle round, both players take a turn made up of the Command, Movement, Shooting, Charge, and Fight phases, in that order." }},
+
+  { id:"victory-points", title:"Victory Points & Objectives", phase:"Scoring", keywords:["victory points","primary objective","secondary objective"],
+    editions:{
+      9:"Players score Victory Points from Primary and Secondary Objectives set out by the mission; whoever has more at the end of the game wins.",
+      10:"Players score Victory Points from Primary and Secondary Objectives set out by the mission; whoever has more at the end of the game wins.",
+      11:"Players score Victory Points from Primary and Secondary Objectives set out by the mission, including Mission Actions performed on terrain; whoever has more at the end of the game wins." }},
+
+  { id:"look-out-sir", title:"Look Out, Sir", phase:"Shooting", keywords:["look out sir","look out, sir"],
+    editions:{
+      10:"A Character model within a unit can't be chosen as the target of a ranged attack unless it's the closest eligible target, or the attacking weapon has the Precision ability.",
+      11:"A Character model within a unit can't be chosen as the target of a ranged attack unless it's the closest eligible target, or the attacking weapon has the Precision ability." }},
+
+  { id:"leader", title:"Leader (attached Characters)", phase:"General", keywords:["leader ability","attach a character","attached unit"],
+    editions:{
+      10:"A Character with the Leader ability can attach to a compatible Bodyguard unit before the battle. While attached, the Character and unit are treated as a single unit for most rules purposes.",
+      11:"A Character with the Leader ability can attach to a compatible Bodyguard unit before the battle. While attached, the Character and unit are treated as a single unit for most rules purposes." }},
+
+  { id:"actions", title:"Actions", phase:"General", keywords:["perform an action","action rule"],
+    editions:{
+      10:"A unit can be given an action at the start of a phase instead of doing other things that phase. The action completes at the end of the same phase in a later turn, unless the unit is destroyed, falls back, or moves in a way that fails the action first.",
+      11:"A unit can be given an action at the start of a phase instead of doing other things that phase. The action completes at the end of the same phase in a later turn, unless the unit is destroyed, falls back, or moves in a way that fails the action first." }},
+
+  { id:"modifier-cap", title:"Hit/Wound Roll Modifiers", phase:"General", keywords:["modifier cap","reroll rules","unmodified roll"],
+    editions:{
+      10:"Hit and wound rolls can't be modified by more than +1 or -1 in total, however many individual modifiers apply. An unmodified roll of 1 always fails; rerolls are applied before modifiers, and a die can't be rerolled more than once.",
+      11:"Hit and wound rolls can't be modified by more than +1 or -1 in total, however many individual modifiers apply. An unmodified roll of 1 always fails; rerolls are applied before modifiers, and a die can't be rerolled more than once." }},
+
+  { id:"deadly-demise", title:"Deadly Demise", phase:"General", keywords:["deadly demise"],
+    editions:{
+      10:"When a model with this ability is destroyed, roll a D6; on the ability's listed threshold, each unit within range suffers mortal wounds.",
+      11:"When a model with this ability is destroyed, roll a D6; on the ability's listed threshold, each unit within range suffers mortal wounds." }},
+
+  { id:"stealth", title:"Stealth", phase:"General", keywords:["stealth","stealth ability"],
+    editions:{
+      10:"Attacks that target a unit with the Stealth ability suffer a -1 penalty to their hit roll.",
+      11:"Attacks that target a unit with the Stealth ability suffer a -1 penalty to their hit roll." }},
+
+  { id:"scouts", title:"Scouts", phase:"General", keywords:["scout","scouts","scout move","scouts ability"],
+    editions:{
+      10:"Before the first turn begins, a unit with a Scouts X\" ability can make a free Normal Move of up to X inches, following normal movement restrictions.",
+      11:"Before the first turn begins, a unit with a Scouts X\" ability can make a free Normal Move of up to X inches, following normal movement restrictions." }},
+
+  { id:"infiltrators", title:"Infiltrators", phase:"General", keywords:["infiltrators","infiltrator","infiltrators ability"],
+    editions:{
+      10:"A unit with the Infiltrators ability can be set up anywhere on the battlefield more than 9 inches from the enemy deployment zone and all enemy models, instead of deploying normally.",
+      11:"A unit with the Infiltrators ability can be set up anywhere on the battlefield more than 9 inches from the enemy deployment zone and all enemy models, instead of deploying normally." }},
+
+  { id:"character-targeting", title:"Character (targeting)", phase:"General", keywords:["character keyword"],
+    editions:{
+      10:"Units with the Character keyword typically can't be given Objective Control unless stated otherwise, and benefit from Look Out, Sir when part of a unit.",
+      11:"Units with the Character keyword typically can't be given Objective Control unless stated otherwise, and benefit from Look Out, Sir when part of a unit." }},
+
+  { id:"transports", title:"Transports & Fire Points", phase:"General", keywords:["transport capacity","embark","disembark","fire deck"],
+    editions:{
+      10:"A unit can embark on a Transport during deployment or by ending a Normal, Advance, or Fall Back move touching it. Units disembark before the Transport moves, and models inside with a Fire Deck can shoot out through Fire Points without disembarking.",
+      11:"A unit can embark on a Transport during deployment or by ending a Normal, Advance, or Fall Back move touching it. Units disembark before the Transport moves, and models inside with a Fire Deck can shoot out through Fire Points without disembarking." }},
+];
+
+// ---------- Typo-tolerant matching ----------
+// Real table talk gets mistyped: missing spaces ("chargephase"), wrong letters
+// ("chrage"), or swapped/dropped letters. Rather than hand-listing every typo
+// per rule, matching tolerates both automatically:
+//  - missing/extra spaces: compare against the input with all whitespace removed
+//  - letter-level typos: compare individual words by edit distance, not exact string
+
+// Restricted edit distance (insertions, deletions, substitutions, and adjacent
+// transpositions like "hte" for "the") — good enough for short game terms.
+function editDistance(a, b){
+  const al = a.length, bl = b.length;
+  const d = Array.from({length: al + 1}, () => new Array(bl + 1).fill(0));
+  for (let i = 0; i <= al; i++) d[i][0] = i;
+  for (let j = 0; j <= bl; j++) d[0][j] = j;
+  for (let i = 1; i <= al; i++){
+    for (let j = 1; j <= bl; j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + cost);
+      if (i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]){
+        d[i][j] = Math.min(d[i][j], d[i-2][j-2] + cost);
+      }
+    }
+  }
+  return d[al][bl];
+}
+
+// How many typo'd letters we tolerate scales with word length, and very short
+// words (like "oc" or "cp") require an exact match so we don't get noise.
+function fuzzyWordMatch(word, keywordWord){
+  if (word === keywordWord) return true;
+  const maxLen = Math.max(word.length, keywordWord.length);
+  if (maxLen <= 3) return false;
+  const threshold = maxLen <= 6 ? 1 : 2;
+  if (Math.abs(word.length - keywordWord.length) > threshold) return false;
+  return editDistance(word, keywordWord) <= threshold;
+}
+
+// Normalize text into plain lowercase word tokens — hyphens and punctuation
+// all collapse to spaces so "battle-shock" and "battle shock" behave the same.
+function tokenize(text){
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+}
+
+// True if the keyword's words appear, in order, as a fuzzy-matching run of
+// consecutive tokens anywhere in the input.
+function keywordMatchesTokens(keywordWords, tokens){
+  if (keywordWords.length > tokens.length) return false;
+  for (let start = 0; start <= tokens.length - keywordWords.length; start++){
+    let ok = true;
+    for (let j = 0; j < keywordWords.length; j++){
+      if (!fuzzyWordMatch(tokens[start + j], keywordWords[j])) { ok = false; break; }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+// build a flat lookup of {rule, edition text, precomputed word forms} per edition
+function buildIndexForEdition(ed){
+  const idx = [];
+  for (const rule of RULES){
+    const text = rule.editions[ed];
+    if (!text) continue; // not a core rule in this edition
+    for (const kw of rule.keywords){
+      const words = tokenize(kw);
+      idx.push({ kw, rule, text, words, squashed: words.join('') });
+    }
+  }
+  idx.sort((a,b) => b.kw.length - a.kw.length);
+  return idx;
+}
+
+let currentEdition = "11";
+let KEYWORD_INDEX = buildIndexForEdition(currentEdition);
+
+const seenRecently = new Map();
+const COOLDOWN_MS = 15000;
+
+function scanText(text, bypassCooldown){
+  const tokens = tokenize(text);
+  const squashedInput = tokens.join('');
+  const now = Date.now();
+  const matched = [];
+  const queuedThisCall = new Set();
+  let anyKeywordHit = false;
+
+  for (const {kw, rule, text: ruleText, words, squashed} of KEYWORD_INDEX){
+    const isMatch = keywordMatchesTokens(words, tokens) ||
+      (squashed.length > 3 && squashedInput.includes(squashed));
+    if (!isMatch) continue;
+
+    anyKeywordHit = true;
+    if (queuedThisCall.has(rule.id)) continue;
+
+    const last = seenRecently.get(rule.id) || 0;
+    if (bypassCooldown || now - last > COOLDOWN_MS){
+      seenRecently.set(rule.id, now);
+      matched.push({rule, trigger: kw, text: ruleText});
+      queuedThisCall.add(rule.id);
+    }
+  }
+  matched.forEach(surfaceRule);
+  return anyKeywordHit;
+}
+
+function verifyLink(){
+  return `<div class="card-verify"><a href="${WAHAPEDIA_BASE[currentEdition]}" target="_blank" rel="noopener">↗ verify current wording on Wahapedia</a></div>`;
+}
+
+// History of surfaced rules, most recent first. Index 0 is always the hero.
+// Only the newest entry plus the next 5 are ever shown; older ones just drop off.
+let surfaceHistory = [];
+const MAX_VISIBLE_RECENT = 5;
+
+function surfaceRule(entry){
+  // If this rule is already sitting somewhere in the visible history, pull it
+  // out first so re-triggering it moves it to the front rather than duplicating it.
+  surfaceHistory = surfaceHistory.filter(e => e.rule.id !== entry.rule.id);
+  surfaceHistory.unshift(entry);
+  surfaceHistory = surfaceHistory.slice(0, MAX_VISIBLE_RECENT + 1);
+  renderFeed();
+}
+
+function recallRule(index){
+  const [entry] = surfaceHistory.splice(index, 1);
+  surfaceHistory.unshift(entry);
+  renderFeed();
+}
+
+function renderFeed(){
+  const heroSlot = document.getElementById('hero-slot');
+  const recentList = document.getElementById('recent-list');
+
+  if (surfaceHistory.length === 0){
+    heroSlot.innerHTML = `<div class="empty-feed" id="emptyFeed">No rules triggered yet. Start listening, or type a phrase above — try "can I overwatch that charge?"</div>`;
+    recentList.innerHTML = '';
+    return;
+  }
+
+  const hero = surfaceHistory[0];
+  heroSlot.innerHTML = `
+    <div class="hero-card">
+      <div class="card-top">
+        <span class="card-title">${hero.rule.title}</span>
+        <span class="card-phase">${hero.rule.phase}</span>
+      </div>
+      <p class="card-text">${hero.text}</p>
+      <div class="card-trigger">heard: <span>"${hero.trigger}"</span></div>
+      ${verifyLink()}
+    </div>
+  `;
+
+  const rest = surfaceHistory.slice(1);
+  recentList.innerHTML = rest.map((entry, i) => {
+    // Fade progressively the further back in the history an item sits.
+    const opacity = (0.82 - i * 0.15).toFixed(2);
+    return `
+      <div class="recent-item" style="opacity:${opacity}" data-index="${i + 1}">
+        <span class="recent-title">${entry.rule.title}</span>
+        <span class="recent-phase">${entry.rule.phase}</span>
+      </div>
+    `;
+  }).join('');
+
+  recentList.querySelectorAll('.recent-item').forEach(el => {
+    el.addEventListener('click', () => recallRule(parseInt(el.dataset.index, 10)));
+  });
+}
+
+// ---------- Manual fallback ----------
+document.getElementById('scanBtn').addEventListener('click', runManualScan);
+document.getElementById('manualInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runManualScan();
+});
+function runManualScan(){
+  const input = document.getElementById('manualInput');
+  const text = input.value.trim();
+  if (!text) return;
+  // Manual entries bypass the cooldown — typing something is a deliberate
+  // request, so it should always surface a match if one exists, even if the
+  // same rule was just shown seconds ago.
+  const found = scanText(text, true);
+  const feedback = document.getElementById('scanFeedback');
+  if (!found){
+    feedback.textContent = `No rule matched "${text}" — try different wording, or browse all rules below.`;
+    feedback.classList.add('show');
+  } else {
+    feedback.classList.remove('show');
+  }
+  input.value = '';
+}
+
+// ---------- Theme toggle ----------
+const themeCheckbox = document.getElementById('themeCheckbox');
+const themeLabel = document.getElementById('themeLabel');
+themeCheckbox.addEventListener('change', () => {
+  document.body.classList.toggle('theme-light', themeCheckbox.checked);
+  themeLabel.textContent = themeCheckbox.checked ? 'Light' : 'Dark';
+});
+
+// ---------- Edition selector ----------
+const editionPills = document.querySelectorAll('#editionPills .pill');
+editionPills.forEach(btn => {
+  btn.addEventListener('click', () => {
+    editionPills.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentEdition = btn.dataset.ed;
+    KEYWORD_INDEX = buildIndexForEdition(currentEdition);
+    if (document.getElementById('browse-panel').style.display === 'block'){
+      renderBrowseList(document.getElementById('browse-search').value);
+    }
+  });
+});
+
+// ---------- Speech recognition ----------
+const micBtn = document.getElementById('micBtn');
+const micLabel = document.getElementById('micLabel');
+let recognition = null;
+let listening = false;
+
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micErrorNotice = document.getElementById('micErrorNotice');
+
+function disableMic(reason){
+  micBtn.disabled = true;
+  micBtn.style.opacity = '0.5';
+  micBtn.style.cursor = 'not-allowed';
+  if (reason){
+    micErrorNotice.textContent = reason;
+    micErrorNotice.style.display = 'block';
+  }
+}
+
+if (!window.isSecureContext){
+  // Mic access is blocked on file:// and plain http:// (non-localhost) pages,
+  // regardless of whether the browser otherwise supports SpeechRecognition.
+  document.getElementById('insecureNotice').style.display = 'block';
+  disableMic();
+} else if (!SpeechRecognitionAPI){
+  document.getElementById('unsupportedNotice').style.display = 'block';
+  disableMic();
+} else {
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++){
+      if (event.results[i].isFinal){
+        const transcript = event.results[i][0].transcript;
+        scanText(transcript);
+      }
+    }
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed'){
+      micErrorNotice.textContent = 'Microphone access was blocked. Check your browser\'s site permissions (usually a padlock or camera/mic icon in the address bar) and allow the microphone, then try again.';
+      micErrorNotice.style.display = 'block';
+      stopListening();
+    } else if (event.error === 'network'){
+      micErrorNotice.textContent = 'Speech recognition needs an internet connection (it runs through the browser\'s speech service). Check your connection and try again.';
+      micErrorNotice.style.display = 'block';
+      stopListening();
+    } else if (event.error !== 'no-speech' && event.error !== 'aborted'){
+      micErrorNotice.textContent = 'Speech recognition error: ' + event.error + '. Try again, or use the text box below.';
+      micErrorNotice.style.display = 'block';
+    }
+  };
+
+  recognition.onend = () => {
+    if (listening){
+      try { recognition.start(); } catch (e) { /* already starting */ }
+    }
+  };
+}
+
+micBtn.addEventListener('click', () => {
+  if (!SpeechRecognitionAPI) return;
+  listening ? stopListening() : startListening();
+});
+
+function startListening(){
+  try {
+    recognition.start();
+    listening = true;
+    micBtn.classList.add('live');
+    micLabel.textContent = 'Listening…';
+    micErrorNotice.style.display = 'none';
+  } catch(e){
+    micErrorNotice.textContent = 'Could not start listening (' + e.message + '). Try reloading the page.';
+    micErrorNotice.style.display = 'block';
+  }
+}
+function stopListening(){
+  listening = false;
+  try { recognition.stop(); } catch(e){}
+  micBtn.classList.remove('live');
+  micLabel.textContent = 'Listen';
+}
+
+// ---------- Browse all rules ----------
+const browseToggle = document.getElementById('browseToggle');
+const browsePanel = document.getElementById('browse-panel');
+const browseList = document.getElementById('browse-list');
+const browseSearch = document.getElementById('browse-search');
+
+function renderBrowseList(filter=''){
+  const f = filter.toLowerCase();
+  browseList.innerHTML = '';
+  RULES
+    .filter(r => r.editions[currentEdition]) // only rules that exist in this edition
+    .filter(r => !f || r.title.toLowerCase().includes(f) || r.editions[currentEdition].toLowerCase().includes(f) || r.keywords.some(k => k.includes(f)))
+    .forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'browse-item';
+      item.innerHTML = `
+        <div class="card-top">
+          <span class="card-title">${r.title}</span>
+          <span class="card-phase">${r.phase}</span>
+        </div>
+        <p class="card-text">${r.editions[currentEdition]}</p>
+        ${verifyLink()}
+      `;
+      browseList.appendChild(item);
+    });
+}
+
+browseToggle.addEventListener('click', () => {
+  const open = browsePanel.style.display === 'block';
+  browsePanel.style.display = open ? 'none' : 'block';
+  browseToggle.classList.toggle('open', !open);
+  if (!open) renderBrowseList();
+});
+browseSearch.addEventListener('input', e => renderBrowseList(e.target.value));
+</script>
+</body>
+</html>
