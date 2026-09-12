@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RuleRunner — Board Game Rules Companion</title>
+<link rel="icon" type="image/svg+xml" href="rulerunner-logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d0f13;
+    --panel: #15181e;
+    --panel-raised: #1b1f27;
+    --border: #262b35;
+    --bone: #e9ebf1;
+    --bone-dim: #a3a9b7;
+    --muted: #6b7280;
+    --blood: #ef4444;
+    --blood-bright: #f87171;
+    --gold: #f5a623;
+    --gold-dim: #c98716;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-full: 999px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  }
+  body.theme-light{
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --panel-raised: #eef0f3;
+    --border: #dfe2e8;
+    --bone: #14161b;
+    --bone-dim: #4a4f5a;
+    --muted: #868c99;
+    --blood: #dc2626;
+    --blood-bright: #ef4444;
+    --gold: #b3720f;
+    --gold-dim: #8f5c0c;
+    --shadow-sm: 0 1px 2px rgba(20,22,30,0.07), 0 2px 8px rgba(20,22,30,0.05);
+    --shadow-md: 0 10px 28px rgba(20,22,30,0.1), 0 2px 8px rgba(20,22,30,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--bone);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+    transition:background-color 0.2s ease, color 0.2s ease;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:0 16px 32px;}
+
+  .topbar{
+    border-bottom:1px solid var(--border);
+    padding:10px 0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .brand-compact{display:flex;align-items:center;gap:8px;}
+  .logo-mark{width:26px;height:26px;color:var(--gold);flex-shrink:0;}
+  .brand-name{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:1.05rem;
+    letter-spacing:-0.01em;
+    color:var(--bone);
+    white-space:nowrap;
+  }
+
+  /* game menu (dropdown) */
+  .game-menu{position:relative;}
+  .game-menu summary{
+    list-style:none;
+    display:flex;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--border);color:var(--bone-dim);
+    font-family:'Inter',sans-serif;font-weight:600;font-size:0.76rem;
+    padding:6px 12px;border-radius:var(--radius-full);cursor:pointer;white-space:nowrap;
+    box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .game-menu summary::-webkit-details-marker{display:none;}
+  .game-menu summary::marker{content:"";}
+  .game-menu summary:hover{border-color:var(--gold-dim);}
+  .game-menu summary:active{transform:scale(0.97);}
+  .game-menu[open] summary{border-color:var(--gold);color:var(--bone);}
+  .chevron{width:10px;height:10px;flex-shrink:0;transition:transform 0.18s ease;}
+  .game-menu[open] .chevron{transform:rotate(180deg);}
+  .game-menu-list{
+    position:absolute;top:calc(100% + 8px);left:0;z-index:20;min-width:210px;
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:5px;box-shadow:var(--shadow-md);
+    animation:menuIn 0.15s ease;
+  }
+  @keyframes menuIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
+  .game-menu-item{
+    padding:8px 12px;font-size:0.82rem;border-radius:var(--radius-sm);color:var(--bone);
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    cursor:pointer;transition:background 0.12s ease;
+  }
+  .game-menu-item:hover{background:var(--panel-raised);}
+  .game-menu-item.active{background:rgba(171,138,74,0.14);color:var(--bone);}
+  .game-menu-item.ghost{color:var(--muted);cursor:default;}
+  .game-menu-item.ghost:hover{background:none;}
+  .game-menu-item .tag{font-size:0.62rem;color:var(--gold);}
+
+  .header-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+
+  .theme-switch{position:relative;display:inline-flex;align-items:center;gap:7px;cursor:pointer;}
+  .theme-switch input{display:none;}
+  .switch-track{
+    width:42px;height:23px;background:var(--panel-raised);border:1px solid var(--border);
+    border-radius:var(--radius-full);position:relative;transition:background 0.2s ease;flex-shrink:0;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .switch-thumb{
+    position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;
+    background:var(--gold);transition:transform 0.2s ease;
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);
+  }
+  .switch-thumb svg{position:absolute;width:10px;height:10px;color:var(--bg);transition:opacity 0.15s ease;}
+  .switch-thumb .icon-sun{opacity:0;}
+  .switch-thumb .icon-moon{opacity:1;}
+  .theme-switch input:checked ~ .switch-track .switch-thumb{transform:translateX(19px);}
+  .theme-switch input:checked ~ .switch-track .switch-thumb .icon-sun{opacity:1;}
+  .theme-switch input:checked ~ .switch-track .switch-thumb .icon-moon{opacity:0;}
+  .theme-switch input:checked ~ .switch-track{background:rgba(171,138,74,0.22);}
+  .switch-label{font-size:0.74rem;color:var(--bone-dim);font-weight:600;min-width:30px;}
+
+  .mic-btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel-raised);
+    border:1px solid var(--border);
+    color:var(--bone);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:0.8rem;
+    padding:9px 14px;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .mic-btn:hover{border-color:var(--gold-dim);}
+  .mic-btn:active{transform:scale(0.97);}
+  .mic-icon{width:15px;height:15px;flex-shrink:0;}
+  .mic-btn.live{
+    background:linear-gradient(180deg, rgba(239,68,68,0.18), rgba(239,68,68,0.08));
+    border-color:var(--blood-bright);color:var(--blood-bright);
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .mic-btn.live .dot{background:var(--blood-bright);animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(184,57,47,0.55);}
+    50%{ box-shadow:0 0 0 6px rgba(184,57,47,0);}
+  }
+
+  .caveat{
+    margin-top:8px;
+    padding:9px 12px;
+    border:1px solid var(--gold-dim);
+    background:rgba(171,138,74,0.07);
+    color:var(--bone-dim);
+    font-size:0.78rem;
+    border-radius:var(--radius-sm);
+    line-height:1.45;
+  }
+  .caveat a{color:var(--gold);}
+  .caveat.unsupported{display:none;border-color:var(--blood-bright);background:rgba(140,42,36,0.08);}
+
+  .fallback{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .input-wrap{position:relative;flex:1;min-width:160px;display:flex;align-items:center;}
+  .input-wrap .search-icon{position:absolute;left:11px;width:14px;height:14px;color:var(--muted);pointer-events:none;}
+  .fallback input{
+    width:100%;
+    background:var(--panel);border:1px solid var(--border);color:var(--bone);
+    padding:9px 12px 9px 32px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.88rem;
+    transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .fallback input:focus{outline:none;border-color:var(--gold-dim);box-shadow:var(--shadow-sm);}
+  .fallback button{
+    background:var(--panel-raised);border:1px solid var(--border);color:var(--bone);
+    padding:9px 15px;border-radius:var(--radius-sm);font-weight:600;font-size:0.82rem;cursor:pointer;
+    flex-shrink:0;box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, transform 0.12s ease;
+  }
+  .fallback button:hover{border-color:var(--gold-dim);}
+  .fallback button:active{transform:scale(0.96);}
+  .scan-feedback{
+    margin-top:6px;font-size:0.76rem;color:var(--muted);min-height:1.1em;
+    opacity:0;transition:opacity 0.25s ease;
+  }
+  .scan-feedback.show{opacity:1;}
+
+  .col-title{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:0.72rem;letter-spacing:0.02em;color:var(--gold);
+    margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);
+  }
+
+  #feed{display:flex;flex-direction:column;gap:10px;}
+  .empty-feed{
+    color:var(--muted);font-size:0.85rem;padding:22px 14px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--radius-sm);
+  }
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--gold);
+    border-radius:var(--radius-sm);padding:12px 14px;animation:slideIn 0.25s ease;
+    box-shadow:var(--shadow-sm);
+  }
+  .hero-card{
+    background:var(--panel);border:1px solid var(--border);border-left:5px solid var(--gold);
+    border-radius:var(--radius-md);padding:14px 16px;animation:slideIn 0.3s ease;
+    box-shadow:var(--shadow-md);
+  }
+  .hero-card .card-title{font-size:1.08rem;}
+  .hero-card .card-text{font-size:0.88rem;}
+  @keyframes slideIn{ from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
+  .card-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px;}
+  .card-title{font-family:'Inter',sans-serif;font-weight:700;font-size:0.95rem;color:var(--bone);}
+  .card-phase{font-size:0.66rem;color:var(--gold);letter-spacing:0.02em;white-space:nowrap;flex-shrink:0;}
+  .card-text{font-size:0.85rem;color:var(--bone-dim);margin:0;}
+  .card-trigger{margin-top:6px;font-size:0.7rem;color:var(--muted);}
+  .card-trigger span{color:var(--gold);font-style:italic;}
+  .card-verify{margin-top:6px;font-size:0.7rem;}
+  .card-verify a{color:var(--gold);text-decoration:none;border-bottom:1px dotted var(--gold-dim);}
+  .card-verify a:hover{color:var(--bone);}
+
+  #recent-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+  .recent-item{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    background:var(--panel);border:1px solid var(--border);border-left:2px solid var(--gold);
+    border-radius:var(--radius-sm);padding:7px 12px;cursor:pointer;
+    transition:opacity 0.3s ease, border-color 0.15s ease, background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .recent-item:hover{opacity:1 !important;border-color:var(--gold);background:var(--panel-raised);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+  .recent-item:active{transform:translateY(0) scale(0.98);}
+  .recent-item .recent-title{font-family:'Inter',sans-serif;font-weight:700;font-size:0.8rem;color:var(--bone-dim);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .recent-item .recent-phase{font-size:0.6rem;color:var(--muted);letter-spacing:0.02em;white-space:nowrap;flex-shrink:0;}
+
+  .browse-toggle{
+    margin-top:20px;background:none;border:none;color:var(--gold);font-family:'Inter',sans-serif;font-weight:700;
+    font-size:0.76rem;letter-spacing:0.02em;cursor:pointer;padding:0;
+    display:flex;align-items:center;gap:6px;
+  }
+  .browse-toggle .chevron{width:9px;height:9px;transform:rotate(-90deg);}
+  .browse-toggle.open .chevron{transform:rotate(0deg);}
+  #browse-panel{display:none;margin-top:12px;}
+  #browse-search{
+    width:100%;background:var(--panel);border:1px solid var(--border);color:var(--bone);
+    padding:9px 12px 9px 32px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.86rem;margin-bottom:12px;
+    transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  #browse-search:focus{outline:none;border-color:var(--gold-dim);box-shadow:var(--shadow-sm);}
+  #browse-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:600px){ #browse-list{grid-template-columns:1fr;} }
+  .browse-item{background:var(--panel);border:1px solid var(--border);padding:10px 13px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);}
+  .browse-item .card-title{font-size:0.86rem;}
+  .browse-item .card-text{font-size:0.8rem;}
+
+  .site-footer{
+    margin-top:32px;padding-top:14px;border-top:1px solid var(--border);
+    font-size:0.7rem;color:var(--muted);line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <details class="game-menu" id="gameMenu">
+      <summary><span id="gameMenuLabel">Spirit Island</span>
+        <svg class="chevron" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5L6 6.5L11 1.5"/></svg>
+      </summary>
+      <div class="game-menu-list" id="gameMenuList"></div>
+    </details>
+
+    <div class="brand-compact">
+      <svg class="logo-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="32" cy="32" r="24"/>
+        <line x1="32" y1="3" x2="32" y2="10"/>
+        <line x1="32" y1="54" x2="32" y2="61"/>
+        <line x1="3" y1="32" x2="10" y2="32"/>
+        <line x1="54" y1="32" x2="61" y2="32"/>
+        <path d="M20 28c0-8 5.5-14 12-14s12 6 12 14c0 5-2 8-3.5 10.5-1 1.7-1.5 3-1.5 4.5v3c0 1.5-1 2.5-2.5 2.5h-9c-1.5 0-2.5-1-2.5-2.5v-3c0-1.5-.5-2.8-1.5-4.5C22 36 20 33 20 28z"/>
+        <circle cx="26.5" cy="28" r="2.1" fill="currentColor" stroke="none"/>
+        <circle cx="37.5" cy="28" r="2.1" fill="currentColor" stroke="none"/>
+        <line x1="27" y1="44" x2="27" y2="47"/>
+        <line x1="32" y1="44.5" x2="32" y2="48"/>
+        <line x1="37" y1="44" x2="37" y2="47"/>
+      </svg>
+      <span class="brand-name">RuleRunner</span>
+    </div>
+
+    <label class="theme-switch">
+      <input type="checkbox" id="themeCheckbox">
+      <span class="switch-track">
+        <span class="switch-thumb">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+      </span>
+      <span class="switch-label" id="themeLabel">Dark</span>
+    </label>
+  </div>
+
+  <div class="fallback">
+    <button class="mic-btn" id="micBtn">
+      <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+      <span class="dot"></span>
+      <span id="micLabel">Listen</span>
+    </button>
+    <div class="input-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="manualInput" placeholder="Type or paste a line from the table talk…">
+    </div>
+    <button id="scanBtn">Scan</button>
+  </div>
+  <div class="scan-feedback" id="scanFeedback"></div>
+
+  <div class="caveat unsupported" id="unsupportedNotice">
+    This browser doesn't support live speech recognition (works best in Chrome or Edge). Use the text box below instead — paste or type what's being said and hit Scan.
+  </div>
+  <div class="caveat unsupported" id="insecureNotice">
+    This page was opened as a local file (<code>file://…</code>), and browsers block microphone access on local files for security reasons. Live listening needs the page served over <code>https://</code> or <code>localhost</code> — try hosting it (e.g. GitHub Pages, Netlify) or running a quick local server (<code>python3 -m http.server</code> in the file's folder, then open <code>http://localhost:8000</code>). The text box below works fine either way.
+  </div>
+  <div class="caveat unsupported" id="micErrorNotice"></div>
+
+  <h2 class="col-title">Rules Surfaced</h2>
+  <div id="hero-slot">
+    <div class="empty-feed" id="emptyFeed">No rules triggered yet. Start listening, or type a phrase above — try "how does blight work?".</div>
+  </div>
+  <div id="recent-list"></div>
+
+  <button class="browse-toggle" id="browseToggle">
+    <svg class="chevron" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5L6 6.5L11 1.5"/></svg>
+    Browse all rules
+  </button>
+  <div id="browse-panel">
+    <div class="input-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="browse-search" placeholder="Filter the full index…">
+    </div>
+    <div id="browse-list"></div>
+  </div>
+
+  <footer class="site-footer">
+    &copy; 2026 [Your Name]. All rights reserved.<br>
+    Unofficial fan project. Game names, mechanics, and trademarks belong to their respective publishers. Not affiliated with or endorsed by any of them.
+  </footer>
+
+</div>
+
+<script>
+// ---------- Games & rules database ----------
+// Independently-written rule summaries for each game — not copied from any
+// rulebook. Each game has its own flat `rules` array; `infoUrl` points
+// to that game's BoardGameGeek page for further reading, since we don't
+// reproduce official rulebook text here.
+const GAMES = {
+  "spirit-island": {
+    name: "Spirit Island",
+    example: "how does blight work?",
+    infoUrl: "https://boardgamegeek.com/boardgame/162886/spirit-island",
+    rules: [
+      { id:"si-turn-structure", title:"Turn Structure", phase:"General", keywords:["turn structure","round structure","phases of a turn"],
+        text:"Each round has four phases in order: Spirit Phase (grow and gain energy, then play cards), Fast Power phase, the Invader Phase (Ravage, then Build, then Explore), and the Slow Power phase, before time passes and the next round begins." },
+      { id:"si-fear", title:"Fear", phase:"General", keywords:["fear","fear track","fear card"],
+        text:"Fear is generated by card and power effects and tracked on the Fear Track. Crossing certain thresholds triggers a Fear Card, drawn from an escalating deck (Level 1 to 3), which gives the spirits a bonus effect instead of the Invaders taking their normal action that step." },
+      { id:"si-blight", title:"Blight", phase:"General", keywords:["blight"],
+        text:"Blight is added to a land when Invaders Ravage it for more damage than the land has health remaining. Each Blight placed also removes a card from the shared Blight Card; if that card ever runs out, the spirits lose the game." },
+      { id:"si-dahan", title:"Dahan", phase:"General", keywords:["dahan"],
+        text:"Dahan are native defenders on the board. When Invaders Ravage a land containing Dahan, the Dahan strike back and damage the Invaders there. Spirit powers can add, move, or strengthen Dahan to make this retaliation more effective." },
+      { id:"si-elements", title:"Elements", phase:"General", keywords:["elements","element icon"],
+        text:"The eight elements (Sun, Moon, Fire, Air, Water, Earth, Plant, Animal) are generated by a spirit's presence on the board and by some card effects. Combining the right elements unlocks a spirit's Innate Powers and some cards' bonus effects." },
+      { id:"si-presence", title:"Presence", phase:"General", keywords:["presence","presence track"],
+        text:"Presence tokens represent a spirit's influence on the board, placed via that spirit's growth options. Presence on the track (rather than the board) also determines a spirit's energy income, card plays, and available elements." },
+      { id:"si-ravage", title:"Ravage", phase:"Invader Phase", keywords:["ravage"],
+        text:"During the Ravage step, each land with Invaders deals damage to that land equal to the combined Invader values there, and the Invaders themselves deal that same damage back to any Dahan present. If the damage exceeds the land's remaining health, Blight is added." },
+      { id:"si-explore-build", title:"Explore & Build", phase:"Invader Phase", keywords:["explore","build invader"],
+        text:"Explore adds new Explorer tokens to lands adjacent to existing Invaders, drawn from the Invader deck's targeted terrain type. Build upgrades existing Invader presence in already-invaded lands, turning Explorers into Towns and Towns into Cities." },
+      { id:"si-innate-power", title:"Innate Power", phase:"General", keywords:["innate power"],
+        text:"Each spirit has unique Innate Powers, unlocked once its presence track reveals the required element cost. An unlocked Innate Power can be used once per round by paying that elemental cost, subject to any extra requirements it lists." },
+      { id:"si-fear-cards", title:"Fear Cards", phase:"General", keywords:["fear card level"],
+        text:"There are three escalating levels of Fear Card. Reaching a new threshold on the Fear Track draws from a more powerful deck, giving the spirits stronger effects — such as reduced Invader actions or bonus cards — for the rest of that game." },
+    ]
+  },
+
+  "terraforming-mars": {
+    name: "Terraforming Mars",
+    example: "when does the game end?",
+    infoUrl: "https://boardgamegeek.com/boardgame/167791/terraforming-mars",
+    rules: [
+      { id:"tm-generation", title:"Generation Structure", phase:"General", keywords:["generation","round structure"],
+        text:"Each generation (except the first) opens with a Research phase where players draft or buy cards, followed by an Action phase where players take turns performing one or two actions until everyone has passed, then a Production phase." },
+      { id:"tm-tr", title:"Terraforming Rating (TR)", phase:"General", keywords:["terraforming rating","tr"],
+        text:"Terraforming Rating increases whenever you raise a global parameter (temperature, oxygen, or oceans). It pays out that many M€ at the start of each Production phase and also counts directly as victory points at game end." },
+      { id:"tm-global-parameters", title:"Global Parameters", phase:"General", keywords:["global parameters","temperature","oxygen level","ocean tiles"],
+        text:"The three global parameters are Temperature (rises in steps of 2°C), Oxygen (rises in steps of 1%), and Oceans (placed as tiles, up to 9). Raising any of them by a step typically raises the acting player's TR by 1, and some thresholds trigger one-time bonuses." },
+      { id:"tm-standard-projects", title:"Standard Projects", phase:"General", keywords:["standard project"],
+        text:"Standard Projects are fixed-cost actions always available to every player — such as Power Plant, Asteroid, Aquifer, Greenery, or City — usable instead of playing a card when you don't have (or don't want to spend) a useful hand." },
+      { id:"tm-production", title:"Production Phase", phase:"General", keywords:["production phase"],
+        text:"Each player gains resources equal to their production values for Megacredits, Steel, Titanium, Plants, Energy, and Heat. Base Megacredit income equals your TR, and any unused Energy converts automatically into Heat at the end of this phase." },
+      { id:"tm-tile-adjacency", title:"Tile Placement & Adjacency", phase:"General", keywords:["adjacency bonus","tile placement","greenery tile","city tile"],
+        text:"Placing a tile on a bonus hex grants the resources shown there. Greenery tiles raise Oxygen by one step and score a point per adjacent tile you own at game end; City tiles score a point for every adjacent Greenery tile at game end." },
+      { id:"tm-milestones-awards", title:"Milestones & Awards", phase:"Scoring", keywords:["milestone","award"],
+        text:"Milestones are claimed during the game for a fixed fee once you meet their requirement, scoring 5 points; only 5 can ever be claimed. Awards are funded during the game at an escalating fee and scored at game end to whoever leads that category." },
+      { id:"tm-card-play", title:"Playing Cards", phase:"General", keywords:["play a card","card requirement"],
+        text:"Playing a card costs Megacredits (reduced by any matching discounts you have) and must meet any listed requirement, such as a minimum global parameter or a tag you control. Automated cards resolve once, Active cards grant an ongoing ability, and Events resolve once then go to a separate discard." },
+      { id:"tm-tags", title:"Tags", phase:"General", keywords:["card tags","tag icon"],
+        text:"Tags are icons on a card — such as Space, Science, Building, Power, City, Plant, Microbe, or Animal — that interact with other cards' costs and effects, and are counted toward several Milestones and Awards." },
+      { id:"tm-end-of-game", title:"End of Game", phase:"General", keywords:["end of the game","game end trigger"],
+        text:"The game-end trigger fires once Temperature, Oxygen, and Oceans have all reached their maximum. Finish the current generation as normal, resolve one final Production phase, then score final tile adjacency and Awards/Milestones." },
+    ]
+  },
+
+  "root": {
+    name: "Root",
+    example: "how does the eyrie decree work?",
+    infoUrl: "https://boardgamegeek.com/boardgame/237182/root",
+    rules: [
+      { id:"root-turn-structure", title:"Turn Structure", phase:"General", keywords:["turn structure","birdsong","daylight","evening"],
+        text:"Each faction's turn has three steps: Birdsong (a faction-specific setup step), Daylight (the main step, where most actions like moving, battling, building, and crafting happen), and Evening (drawing cards, usually up to your hand limit)." },
+      { id:"root-dominance", title:"Dominance Cards", phase:"General", keywords:["dominance card"],
+        text:"A Dominance card can be played instead of drawing bonus cards from the deck once you can't match any of its suits requirement. Playing it sets up an alternate win condition tied to that suit, achieved by meeting its printed criteria on a later turn." },
+      { id:"root-crafting", title:"Crafting", phase:"General", keywords:["crafting","craft a card"],
+        text:"Crafting uses a card whose suit matches an available crafting slot in one of your clearings. The crafted card is set aside face-up for its effect (often points or a persistent bonus), and is no longer available to play as a normal card." },
+      { id:"root-battle", title:"Battle", phase:"General", keywords:["battle","combat root"],
+        text:"The attacker chooses a defender sharing their clearing and rolls two dice, assigning the higher result as their hits and the lower as the defender's hits, modified by ambush cards or faction abilities. Each hit removes one enemy piece, and a defender with no warriors left takes one automatic hit to a building or token instead." },
+      { id:"root-marquise", title:"Marquise de Cat", phase:"Faction", keywords:["marquise de cat","cat faction"],
+        text:"The Marquise builds Sawmills, Workshops, and Recruiters to generate wood, crafting power, and warriors respectively, and scores points primarily from building count and crafted cards." },
+      { id:"root-eyrie", title:"Eyrie Dynasties", phase:"Faction", keywords:["eyrie dynasties","eyrie decree"],
+        text:"The Eyrie must add at least one card to their Decree each turn, sorted into Recruit, Move, Battle, and Build columns, then carry out the entire Decree in order on their next turn. Failing to complete any part of it triggers Turmoil: the current leader is deposed, the Decree is discarded, and a new leader with a new ability is chosen." },
+      { id:"root-woodland-alliance", title:"Woodland Alliance", phase:"Faction", keywords:["woodland alliance"],
+        text:"The Woodland Alliance gains Supporters whenever other factions take military actions in or near sympathetic clearings. Supporters can be spent to spread Sympathy to new clearings or to trigger a Revolt, converting a sympathetic clearing under enough military pressure into their own base." },
+      { id:"root-vagabond", title:"Vagabond", phase:"Faction", keywords:["vagabond"],
+        text:"The Vagabond acts alone, moving between clearings to explore ruins, complete quests, and optionally aid or battle other factions. They score points mainly through completed quests and successful battles, and refresh exhausted items by resting at their camp." },
+      { id:"root-clearings-suits", title:"Clearings & Suits", phase:"General", keywords:["clearing suit","rule a clearing"],
+        text:"Each clearing has a suit (Fox, Rabbit, or Mouse) that matches card suits for crafting and card-use bonuses. Whichever faction has the most warriors in a clearing rules it; a tie means no one does, which matters for several factions' abilities." },
+      { id:"root-scoring", title:"Scoring & Game End", phase:"Scoring", keywords:["scoring track","game end root"],
+        text:"Most factions score points through their own distinct engine, tracked on a shared scoreboard. In the base game, the moment any faction reaches 30 points, the game ends at the end of that round and the highest score wins." },
+    ]
+  },
+  "warhammer-40k": {
+    name: "Warhammer 40,000 (11th Ed.)",
+    example: "can I overwatch that charge?",
+    infoUrl: "https://wahapedia.ru/wh40k11ed/the-rules/core-rules/",
+    rules: [
+      { id:"w40k-move", title:"Move", phase:"Movement", keywords:["move","movement phase","normal move"],
+        text:"Each unit can move up to its Move characteristic in inches. Models can move freely through friendly models, and rotating a model on the spot costs no movement." },
+      { id:"w40k-advance", title:"Advance", phase:"Movement", keywords:["advance","advancing"],
+        text:"Roll a D6 and add it to the unit's Move for this phase. Advancing locks out shooting and charging this turn unless a specific ability overrides it." },
+      { id:"w40k-fallback", title:"Fall Back", phase:"Movement", keywords:["fall back","falling back"],
+        text:"A unit within Engagement Range of an enemy can fall back to disengage. If it isn't Battle-shocked it falls back with no downside; if it is Battle-shocked it must make a Desperate Escape instead. Either way it can't shoot or charge this turn unless an ability says otherwise." },
+      { id:"w40k-desperate-escape", title:"Desperate Escape", phase:"Movement", keywords:["desperate escape"],
+        text:"Forced on a Battle-shocked unit that falls back: make a Hazard Roll for each model, and each model can move through enemy models while doing so." },
+      { id:"w40k-difficult-terrain", title:"Difficult Terrain", phase:"Movement", keywords:["difficult terrain","dense terrain"],
+        text:"Difficult ground effects remain feature-specific rather than universal — check the printed rules on the terrain feature itself, alongside Cover and Hidden for its other effects." },
+      { id:"w40k-deep-strike", title:"Deep Strike", phase:"Movement", keywords:["deep strike","deep striking"],
+        text:"A unit with Deep Strike that starts in Reserves can be set up anywhere on the battlefield more than 9 inches from all enemy models, instead of arriving from a table edge." },
+      { id:"w40k-strategic-reserves", title:"Strategic Reserves", phase:"Movement", keywords:["strategic reserves","in reserve","reserves"],
+        text:"Units placed in Strategic Reserves don't start on the battlefield and arrive from turn 2 onward, from your own table edge. Reserve limits are set against the mission's Detachment Points budget." },
+      { id:"w40k-overwatch", title:"Overwatch", phase:"Shooting", keywords:["overwatch"],
+        text:"The Fire Overwatch Stratagem is used at the end of your opponent's Movement phase, not reactively during it. It lets one friendly unengaged unit (excluding Titanic units) shoot at one visible enemy unit within 24\", hitting only on unmodified 6s with no rerolls on the hit roll." },
+      { id:"w40k-shoot", title:"Shoot", phase:"Shooting", keywords:["shooting phase","shoot","ranged attack","to hit","hit roll"],
+        text:"Pick an eligible unit and one or more valid targets in range and visible. Roll to hit — applying the -1 penalty if the target is in Cover — then roll to wound, the opponent saves, and you resolve damage." },
+      { id:"w40k-line-of-sight", title:"Line of Sight", phase:"Shooting", keywords:["line of sight","visible","can i see"],
+        text:"A model can see another model if any part of it is visible when you look from the shooting model's location, subject to the Hidden status overriding visibility for qualifying units in terrain." },
+      { id:"w40k-cover", title:"Cover", phase:"Shooting", keywords:["cover","in cover","benefit of cover"],
+        text:"A unit has the benefit of Cover against a ranged attack if every model in it either has the Infantry, Beast, or Swarm keyword and is within a terrain area, or isn't fully visible to the attacker due to intervening terrain. Cover worsens the attacker's Ballistic Skill by 1, rather than boosting the target's save." },
+      { id:"w40k-plunging-fire", title:"Plunging Fire", phase:"Shooting", keywords:["plunging fire"],
+        text:"A unit firing from an elevated position down at a target below it gets +1 to its Ballistic Skill for that attack, rewarding units that hold the high ground." },
+      { id:"w40k-hidden", title:"Hidden", phase:"Shooting", keywords:["hidden status","is it hidden"],
+        text:"An Infantry, Beast, or Swarm model gains the Hidden status if it's within a terrain area containing a Dense terrain feature and its unit made no ranged attacks this turn or last turn. Enemy models more than 15 inches away can't target it at all." },
+      { id:"w40k-blast", title:"Blast", phase:"Shooting", keywords:["blast weapon","blast"],
+        text:"Weapons with the Blast ability get +1 attack for every full 5 models in the target unit. Blast weapons can't be used to target a unit within Engagement Range of any of your units." },
+      { id:"w40k-rapid-fire", title:"Rapid Fire", phase:"Shooting", keywords:["rapid fire"],
+        text:"A weapon with Rapid Fire X gets +X attacks when the target is within half the weapon's range." },
+      { id:"w40k-sustained-hits", title:"Sustained Hits", phase:"Shooting", keywords:["sustained hits"],
+        text:"On a Critical Hit (an unmodified 6 to hit, unless stated otherwise), the attack scores that many additional hits automatically — Sustained Hits X means X extra hits." },
+      { id:"w40k-lethal-hits", title:"Lethal Hits", phase:"Shooting", keywords:["lethal hits"],
+        text:"A Critical Hit automatically wounds the target, skipping the need to roll to wound for that attack." },
+      { id:"w40k-devastating-wounds", title:"Devastating Wounds", phase:"Shooting", keywords:["devastating wounds"],
+        text:"A Critical Wound (an unmodified 6 to wound) is allocated as a mortal wound instead of normal damage, and armour or invulnerable saves can't be taken against it." },
+      { id:"w40k-charge", title:"Charge", phase:"Charge", keywords:["charge","charge phase","declare a charge","charging"],
+        text:"Declare a charge if your unit is within 12 inches of an enemy, unengaged, and didn't Advance or Fall Back this turn. Roll 2D6 for charge distance, then select one or more enemy units within 12 inches and within that distance as your targets, moving to end Engaged with all of them." },
+      { id:"w40k-heroic-intervention", title:"Heroic Intervention", phase:"Charge", keywords:["heroic intervention"],
+        text:"Certain units can move up to 6 inches, charge-move style, when an enemy unit ends a charge move within range, even though it isn't their turn, measured against the 2\" Engagement Range." },
+      { id:"w40k-fight", title:"Fight", phase:"Fight", keywords:["fight phase","melee","fighting","to wound","wound roll"],
+        text:"Fights First units are selected to fight before other eligible units, then remaining units alternate between players. Each fighting model can move up to 3 inches (pile in), then makes its melee attacks." },
+      { id:"w40k-fights-first", title:"Fights First", phase:"Fight", keywords:["fights first"],
+        text:"A unit that made a charge move this turn has the Fights First ability until the end of the turn. Fights First units are selected to fight before any other eligible unit in the Fight phase." },
+      { id:"w40k-pile-in", title:"Pile In", phase:"Fight", keywords:["pile in","piling in"],
+        text:"Before making melee attacks, each model can move up to 3 inches toward the closest enemy model, ending closer to that enemy than where it started." },
+      { id:"w40k-consolidate", title:"Consolidate", phase:"Fight", keywords:["consolidate","consolidation"],
+        text:"After a unit finishes its melee attacks, its models can move up to 3 inches: toward the nearest enemy unit if one is within 3\", or otherwise toward an objective within 3\"." },
+      { id:"w40k-engagement-range", title:"Engagement Range", phase:"Fight", keywords:["engagement range"],
+        text:"Engagement Range extends 2 inches horizontally and 5 inches vertically from an enemy model. Being within it means a unit is engaged, which restricts falling back and most shooting." },
+      { id:"w40k-feel-no-pain", title:"Feel No Pain", phase:"Fight", keywords:["feel no pain","fnp"],
+        text:"When a model with Feel No Pain X+ would lose a wound, roll a D6 for each point of damage. On a result of X or more, that point of damage is ignored." },
+      { id:"w40k-battle-shock", title:"Battle-shock / Morale", phase:"Command", keywords:["battle-shock","battleshock","morale","combat attrition"],
+        text:"At the start of the Command phase, make a battle-shock roll for any unit at or below half-strength, or already Battle-shocked: roll 2D6, and it avoids or recovers from Battle-shock if the result is equal to or greater than its Leadership. A Battle-shocked unit has its Objective Control reduced to '-', can't be targeted by Stratagems, and can't start actions." },
+      { id:"w40k-objective-control", title:"Objective Control (OC)", phase:"Scoring", keywords:["objective control","oc","control an objective","holding the objective"],
+        text:"An objective is tied to a terrain area. Add up the Objective Control of your models within it: the higher total controls the objective, and a tie leaves it uncontrolled unless it's Secured. A Secured Objective stays under your control even after you leave, until your opponent's control level there exceeds yours." },
+      { id:"w40k-detachments", title:"Detachments & Detachment Points", phase:"Army Building", keywords:["detachment points","multiple detachments","combine detachments"],
+        text:"An army list can combine multiple Detachments within a Detachment Points budget, mixing and matching the Stratagems and Enhancements each one brings, rather than picking a single Detachment for the whole army." },
+      { id:"w40k-command-points", title:"Command Points & Stratagems", phase:"Command", keywords:["command points","cp","stratagem"],
+        text:"Command Points are spent to use Stratagems. The same Stratagem can't be used more than once per phase by the same player, and — unless stated otherwise — the same unit can't be targeted by more than one Stratagem in the same phase." },
+      { id:"w40k-invulnerable-save", title:"Invulnerable Save", phase:"General", keywords:["invulnerable save","invuln","invulnerable"],
+        text:"An invulnerable save is used instead of a normal armour save and isn't affected by AP. A model uses whichever save is better for a given attack." },
+      { id:"w40k-mortal-wounds", title:"Mortal Wounds", phase:"General", keywords:["mortal wounds","mortal wound"],
+        text:"Mortal wounds are allocated directly to a unit, removing wounds without any save roll, aside from abilities that explicitly work against mortal wounds." },
+      { id:"w40k-terrain-traits", title:"Terrain Traits", phase:"General", keywords:["terrain trait","obscuring","light cover"],
+        text:"Terrain features fall into three categories — Exposed, Light, or Dense — each with fixed rules for movement and visibility, replacing 10th edition's Light Cover/Heavy Cover/Obscuring split." },
+      { id:"w40k-flying", title:"Flying (FLY keyword)", phase:"Movement", keywords:["flying","fly keyword","flyer movement"],
+        text:"A unit with the FLY keyword subtracts 2 inches from its maximum move but ignores vertical distance entirely, letting it pass over terrain and buildings without measuring climbs and drops." },
+      { id:"w40k-unit-coherency", title:"Unit Coherency", phase:"General", keywords:["unit coherency","coherency"],
+        text:"Every model in a unit must be within 2 inches horizontally and 5 inches vertically of at least one other model in that unit, and within 9 inches horizontally and 5 inches vertically of every other model in that unit." },
+      { id:"w40k-hazard-roll", title:"Hazard Roll", phase:"General", keywords:["hazard roll"],
+        text:"To make a Hazard Roll for a unit, roll a D6 for each model: on a 1-2 the unit suffers 1 mortal wound, or 3 mortal wounds instead if every model in the unit is a Monster or Vehicle." },
+      { id:"w40k-twin-linked", title:"Twin-linked", phase:"Weapon Ability", keywords:["twin-linked","twin linked"],
+        text:"When making an attack with this weapon, you can re-roll the wound roll." },
+      { id:"w40k-ignores-cover", title:"Ignores Cover", phase:"Weapon Ability", keywords:["ignores cover"],
+        text:"Attacks made with this weapon ignore the -1 to-hit penalty that a target in Cover would otherwise impose." },
+      { id:"w40k-indirect-fire", title:"Indirect Fire", phase:"Weapon Ability", keywords:["indirect fire"],
+        text:"This weapon can target units it doesn't have line of sight to. Such attacks are made at -1 to hit, and the target always counts as being in Cover against them." },
+      { id:"w40k-torrent", title:"Torrent", phase:"Weapon Ability", keywords:["torrent"],
+        text:"Attacks made with this weapon automatically hit their target — skip the hit roll entirely." },
+      { id:"w40k-melta", title:"Melta", phase:"Weapon Ability", keywords:["melta","melta weapon"],
+        text:"If the target is within half this weapon's range, add the melta value to the Damage characteristic of each successful wound." },
+      { id:"w40k-anti-x", title:"Anti-X", phase:"Weapon Ability", keywords:["anti-infantry","anti-vehicle","anti-monster","anti-x"],
+        text:"Written as Anti-[Keyword] X+. Against a unit with the named keyword, any wound roll of X or more automatically scores a Critical Wound, regardless of the weapon's actual Strength versus Toughness." },
+      { id:"w40k-extra-attacks", title:"Extra Attacks", phase:"Weapon Ability", keywords:["extra attacks"],
+        text:"A weapon with this ability is used in addition to a model's other weapons, rather than being selected instead of them." },
+      { id:"w40k-precision", title:"Precision", phase:"Weapon Ability", keywords:["precision","precision weapon"],
+        text:"Successful hits with this weapon can be allocated to a Character model within the target unit, bypassing the normal closest-model wound allocation order." },
+      { id:"w40k-lance", title:"Lance", phase:"Weapon Ability", keywords:["lance","lance weapon"],
+        text:"If the bearer made a charge move this turn, add 1 to wound rolls for this weapon in the Fight phase." },
+      { id:"w40k-hazardous", title:"Hazardous", phase:"Weapon Ability", keywords:["hazardous","hazardous weapon"],
+        text:"After a model attacks with this weapon, roll a D6 for each model that did so. On a 1, that model's unit suffers mortal wounds from the weapon overheating or malfunctioning." },
+      { id:"w40k-one-shot", title:"One Shot", phase:"Weapon Ability", keywords:["one shot","one-shot","one shot weapon"],
+        text:"This weapon can only be selected to shoot with once per battle." },
+      { id:"w40k-assault-weapon", title:"Assault (weapon ability)", phase:"Weapon Ability", keywords:["assault","assault weapon"],
+        text:"A model can shoot this weapon even if its unit Advanced this turn." },
+      { id:"w40k-heavy-weapon", title:"Heavy (weapon ability)", phase:"Weapon Ability", keywords:["heavy","heavy weapon"],
+        text:"Add 1 to the hit roll for this weapon if the bearer's unit Remained Stationary this turn." },
+      { id:"w40k-pistol-weapon", title:"Pistol", phase:"Weapon Ability", keywords:["pistol","pistol weapon"],
+        text:"A model can shoot this weapon even while its unit is within Engagement Range of the enemy, targeting only the unit it's fighting." },
+      { id:"w40k-battle-round", title:"Battle Round & Phases", phase:"General", keywords:["battle round","turn order","phases of a turn"],
+        text:"Each battle round, both players take a turn made up of the Command, Movement, Shooting, Charge, and Fight phases, in that order." },
+      { id:"w40k-victory-points", title:"Victory Points & Objectives", phase:"Scoring", keywords:["victory points","primary objective","secondary objective"],
+        text:"Players score Victory Points from Primary and Secondary Objectives set out by the mission; whoever has more at the end of the game wins." },
+      { id:"w40k-look-out-sir", title:"Look Out, Sir", phase:"Shooting", keywords:["look out sir","look out, sir"],
+        text:"A Character model within a unit can't be chosen as the target of a ranged attack unless it's the closest eligible target, or the attacking weapon has the Precision ability." },
+      { id:"w40k-leader", title:"Leader (attached Characters)", phase:"General", keywords:["leader ability","attach a character","attached unit"],
+        text:"A Character with the Leader ability can attach to a compatible Bodyguard unit before the battle. While attached, the Character and unit are treated as a single unit for most rules purposes." },
+      { id:"w40k-actions", title:"Actions", phase:"General", keywords:["perform an action","action rule","start an action"],
+        text:"A unit can start an action if it isn't Battle-shocked, isn't engaged (unless Titanic), has an Objective Control greater than 0, and didn't Advance, Fall Back, or start another action this turn. While performing it, the unit can't shoot (unless Titanic) or declare a charge, and any move other than a pile-in or consolidation fails the action." },
+      { id:"w40k-modifier-cap", title:"Hit/Wound Roll Modifiers", phase:"General", keywords:["modifier cap","reroll rules","unmodified roll"],
+        text:"Hit and wound rolls can't be modified by more than +1 or -1 in total, however many individual modifiers apply. An unmodified roll of 1 always fails; rerolls are applied before modifiers, and a die can't be rerolled more than once." },
+      { id:"w40k-deadly-demise", title:"Deadly Demise", phase:"General", keywords:["deadly demise"],
+        text:"When a model with this ability is destroyed, roll a D6; on the ability's listed threshold, each unit within range suffers mortal wounds." },
+      { id:"w40k-stealth", title:"Stealth", phase:"General", keywords:["stealth","stealth ability"],
+        text:"Attacks that target a unit with the Stealth ability suffer a -1 penalty to their hit roll." },
+      { id:"w40k-scouts", title:"Scouts", phase:"General", keywords:["scout","scouts","scout move","scouts ability"],
+        text:"Before the first turn begins, a unit with a Scouts X\" ability can make a free Normal Move of up to X inches, following normal movement restrictions." },
+      { id:"w40k-infiltrators", title:"Infiltrators", phase:"General", keywords:["infiltrators","infiltrator","infiltrators ability"],
+        text:"A unit with the Infiltrators ability can be set up anywhere on the battlefield more than 9 inches from the enemy deployment zone and all enemy models, instead of deploying normally." },
+      { id:"w40k-character-targeting", title:"Character (targeting)", phase:"General", keywords:["character keyword"],
+        text:"Units with the Character keyword typically can't be given Objective Control unless stated otherwise, and benefit from Look Out, Sir when part of a unit." },
+      { id:"w40k-transports", title:"Transports & Fire Points", phase:"General", keywords:["transport capacity","embark","disembark","fire deck"],
+        text:"A unit can embark on a Transport during deployment or by ending a Normal, Advance, or Fall Back move touching it. Units disembark before the Transport moves, and models inside with a Fire Deck can shoot out through Fire Points without disembarking." },
+    ]
+  },
+};
+
+
+const DEFAULT_GAME = "spirit-island";
+
+// ---------- Typo-tolerant matching ----------
+// Real table talk gets mistyped: missing spaces ("chargephase"), wrong letters
+// ("chrage"), or swapped/dropped letters. Rather than hand-listing every typo
+// per rule, matching tolerates both automatically:
+//  - missing/extra spaces: compare against the input with all whitespace removed
+//  - letter-level typos: compare individual words by edit distance, not exact string
+
+// Restricted edit distance (insertions, deletions, substitutions, and adjacent
+// transpositions like "hte" for "the") — good enough for short game terms.
+function editDistance(a, b){
+  const al = a.length, bl = b.length;
+  const d = Array.from({length: al + 1}, () => new Array(bl + 1).fill(0));
+  for (let i = 0; i <= al; i++) d[i][0] = i;
+  for (let j = 0; j <= bl; j++) d[0][j] = j;
+  for (let i = 1; i <= al; i++){
+    for (let j = 1; j <= bl; j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + cost);
+      if (i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]){
+        d[i][j] = Math.min(d[i][j], d[i-2][j-2] + cost);
+      }
+    }
+  }
+  return d[al][bl];
+}
+
+// How many typo'd letters we tolerate scales with word length, and very short
+// words (like "oc" or "cp") require an exact match so we don't get noise.
+function fuzzyWordMatch(word, keywordWord){
+  if (word === keywordWord) return true;
+  const maxLen = Math.max(word.length, keywordWord.length);
+  if (maxLen <= 3) return false;
+  const threshold = maxLen <= 6 ? 1 : 2;
+  if (Math.abs(word.length - keywordWord.length) > threshold) return false;
+  return editDistance(word, keywordWord) <= threshold;
+}
+
+// Normalize text into plain lowercase word tokens — hyphens and punctuation
+// all collapse to spaces so "battle-shock" and "battle shock" behave the same.
+function tokenize(text){
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+}
+
+// True if the keyword's words appear, in order, as a fuzzy-matching run of
+// consecutive tokens anywhere in the input.
+function keywordMatchesTokens(keywordWords, tokens){
+  if (keywordWords.length > tokens.length) return false;
+  for (let start = 0; start <= tokens.length - keywordWords.length; start++){
+    let ok = true;
+    for (let j = 0; j < keywordWords.length; j++){
+      if (!fuzzyWordMatch(tokens[start + j], keywordWords[j])) { ok = false; break; }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+// build a flat lookup of {rule, text, precomputed word forms} for a given game
+function buildIndexForGame(gameId){
+  const idx = [];
+  const game = GAMES[gameId];
+  for (const rule of game.rules){
+    for (const kw of rule.keywords){
+      const words = tokenize(kw);
+      idx.push({ kw, rule, text: rule.text, words, squashed: words.join('') });
+    }
+  }
+  idx.sort((a,b) => b.kw.length - a.kw.length);
+  return idx;
+}
+
+let currentGame = DEFAULT_GAME;
+let KEYWORD_INDEX = buildIndexForGame(currentGame);
+
+const seenRecently = new Map();
+const COOLDOWN_MS = 15000;
+
+function scanText(text, bypassCooldown){
+  const tokens = tokenize(text);
+  const squashedInput = tokens.join('');
+  const now = Date.now();
+  const matched = [];
+  const queuedThisCall = new Set();
+  let anyKeywordHit = false;
+
+  for (const {kw, rule, text: ruleText, words, squashed} of KEYWORD_INDEX){
+    const isMatch = keywordMatchesTokens(words, tokens) ||
+      (squashed.length > 3 && squashedInput.includes(squashed));
+    if (!isMatch) continue;
+
+    anyKeywordHit = true;
+    if (queuedThisCall.has(rule.id)) continue;
+
+    const last = seenRecently.get(rule.id) || 0;
+    if (bypassCooldown || now - last > COOLDOWN_MS){
+      seenRecently.set(rule.id, now);
+      matched.push({rule, trigger: kw, text: ruleText});
+      queuedThisCall.add(rule.id);
+    }
+  }
+  matched.forEach(surfaceRule);
+  return anyKeywordHit;
+}
+
+function verifyLink(){
+  const url = GAMES[currentGame].infoUrl;
+  return `<div class="card-verify"><a href="${url}" target="_blank" rel="noopener">↗ more info</a></div>`;
+}
+
+// History of surfaced rules, kept separately per game so switching games
+// never shows one game's rules mixed with another's — and switching back
+// to a game restores where you left off, rather than losing it.
+// Most recent first; index 0 is always the hero. Only the newest entry plus
+// the next 5 are ever shown; older ones just drop off.
+const historyByGame = {};
+for (const gameId of Object.keys(GAMES)) historyByGame[gameId] = [];
+const MAX_VISIBLE_RECENT = 5;
+
+function getHistory(){
+  return historyByGame[currentGame];
+}
+
+function surfaceRule(entry){
+  let history = getHistory();
+  // If this rule is already sitting somewhere in the visible history, pull it
+  // out first so re-triggering it moves it to the front rather than duplicating it.
+  history = history.filter(e => e.rule.id !== entry.rule.id);
+  history.unshift(entry);
+  historyByGame[currentGame] = history.slice(0, MAX_VISIBLE_RECENT + 1);
+  renderFeed();
+}
+
+function recallRule(index){
+  const history = getHistory();
+  const [entry] = history.splice(index, 1);
+  history.unshift(entry);
+  renderFeed();
+}
+
+function renderFeed(){
+  const surfaceHistory = getHistory();
+  const heroSlot = document.getElementById('hero-slot');
+  const recentList = document.getElementById('recent-list');
+
+  if (surfaceHistory.length === 0){
+    heroSlot.innerHTML = `<div class="empty-feed" id="emptyFeed">No rules triggered yet. Start listening, or type a phrase above — try "${GAMES[currentGame].example}".</div>`;
+    recentList.innerHTML = '';
+    return;
+  }
+
+  const hero = surfaceHistory[0];
+  heroSlot.innerHTML = `
+    <div class="hero-card">
+      <div class="card-top">
+        <span class="card-title">${hero.rule.title}</span>
+        <span class="card-phase">${hero.rule.phase}</span>
+      </div>
+      <p class="card-text">${hero.text}</p>
+      <div class="card-trigger">heard: <span>"${hero.trigger}"</span></div>
+      ${verifyLink()}
+    </div>
+  `;
+
+  const rest = surfaceHistory.slice(1);
+  recentList.innerHTML = rest.map((entry, i) => {
+    // Fade progressively the further back in the history an item sits.
+    const opacity = (0.82 - i * 0.15).toFixed(2);
+    return `
+      <div class="recent-item" style="opacity:${opacity}" data-index="${i + 1}">
+        <span class="recent-title">${entry.rule.title}</span>
+        <span class="recent-phase">${entry.rule.phase}</span>
+      </div>
+    `;
+  }).join('');
+
+  recentList.querySelectorAll('.recent-item').forEach(el => {
+    el.addEventListener('click', () => recallRule(parseInt(el.dataset.index, 10)));
+  });
+}
+
+// ---------- Manual fallback ----------
+document.getElementById('scanBtn').addEventListener('click', runManualScan);
+document.getElementById('manualInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runManualScan();
+});
+function runManualScan(){
+  const input = document.getElementById('manualInput');
+  const text = input.value.trim();
+  if (!text) return;
+  // Manual entries bypass the cooldown — typing something is a deliberate
+  // request, so it should always surface a match if one exists, even if the
+  // same rule was just shown seconds ago.
+  const found = scanText(text, true);
+  const feedback = document.getElementById('scanFeedback');
+  if (!found){
+    feedback.textContent = `No rule matched "${text}" — try different wording, or browse all rules below.`;
+    feedback.classList.add('show');
+  } else {
+    feedback.classList.remove('show');
+  }
+  input.value = '';
+}
+
+// ---------- Theme toggle ----------
+const themeCheckbox = document.getElementById('themeCheckbox');
+const themeLabel = document.getElementById('themeLabel');
+themeCheckbox.addEventListener('change', () => {
+  document.body.classList.toggle('theme-light', themeCheckbox.checked);
+  themeLabel.textContent = themeCheckbox.checked ? 'Light' : 'Dark';
+});
+
+// ---------- Game menu wiring ----------
+// ---------- Game menu ----------
+const gameMenu = document.getElementById('gameMenu');
+const gameMenuList = document.getElementById('gameMenuList');
+const gameMenuLabel = document.getElementById('gameMenuLabel');
+const manualInputEl = document.getElementById('manualInput');
+
+function renderGameMenu(){
+  gameMenuList.innerHTML = Object.keys(GAMES).map(id => {
+    const active = id === currentGame ? ' active' : '';
+    return `<div class="game-menu-item${active}" data-game="${id}">${GAMES[id].name}</div>`;
+  }).join('') + `<div class="game-menu-item ghost">More games <span class="tag">soon</span></div>`;
+
+  gameMenuList.querySelectorAll('.game-menu-item[data-game]').forEach(el => {
+    el.addEventListener('click', () => {
+      currentGame = el.dataset.game;
+      KEYWORD_INDEX = buildIndexForGame(currentGame);
+      gameMenuLabel.textContent = GAMES[currentGame].name;
+      manualInputEl.placeholder = `Try "${GAMES[currentGame].example}"`;
+      renderGameMenu();
+      gameMenu.removeAttribute('open');
+      // Each game keeps its own history (see historyByGame), so switching
+      // just re-renders whatever this game's history already holds.
+      renderFeed();
+      if (document.getElementById('browse-panel').style.display === 'block'){
+        renderBrowseList(document.getElementById('browse-search').value);
+      }
+    });
+  });
+}
+renderGameMenu();
+manualInputEl.placeholder = `Try "${GAMES[currentGame].example}"`;
+
+// ---------- Speech recognition ----------
+const micBtn = document.getElementById('micBtn');
+const micLabel = document.getElementById('micLabel');
+let recognition = null;
+let listening = false;
+
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micErrorNotice = document.getElementById('micErrorNotice');
+
+function disableMic(reason){
+  micBtn.disabled = true;
+  micBtn.style.opacity = '0.5';
+  micBtn.style.cursor = 'not-allowed';
+  if (reason){
+    micErrorNotice.textContent = reason;
+    micErrorNotice.style.display = 'block';
+  }
+}
+
+if (!window.isSecureContext){
+  // Mic access is blocked on file:// and plain http:// (non-localhost) pages,
+  // regardless of whether the browser otherwise supports SpeechRecognition.
+  document.getElementById('insecureNotice').style.display = 'block';
+  disableMic();
+} else if (!SpeechRecognitionAPI){
+  document.getElementById('unsupportedNotice').style.display = 'block';
+  disableMic();
+} else {
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++){
+      if (event.results[i].isFinal){
+        const transcript = event.results[i][0].transcript;
+        scanText(transcript);
+      }
+    }
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed'){
+      micErrorNotice.textContent = 'Microphone access was blocked. Check your browser\'s site permissions (usually a padlock or camera/mic icon in the address bar) and allow the microphone, then try again.';
+      micErrorNotice.style.display = 'block';
+      stopListening();
+    } else if (event.error === 'network'){
+      micErrorNotice.textContent = 'Speech recognition needs an internet connection (it runs through the browser\'s speech service). Check your connection and try again.';
+      micErrorNotice.style.display = 'block';
+      stopListening();
+    } else if (event.error !== 'no-speech' && event.error !== 'aborted'){
+      micErrorNotice.textContent = 'Speech recognition error: ' + event.error + '. Try again, or use the text box below.';
+      micErrorNotice.style.display = 'block';
+    }
+  };
+
+  recognition.onend = () => {
+    if (listening){
+      try { recognition.start(); } catch (e) { /* already starting */ }
+    }
+  };
+}
+
+micBtn.addEventListener('click', () => {
+  if (!SpeechRecognitionAPI) return;
+  listening ? stopListening() : startListening();
+});
+
+function startListening(){
+  try {
+    recognition.start();
+    listening = true;
+    micBtn.classList.add('live');
+    micLabel.textContent = 'Listening…';
+    micErrorNotice.style.display = 'none';
+  } catch(e){
+    micErrorNotice.textContent = 'Could not start listening (' + e.message + '). Try reloading the page.';
+    micErrorNotice.style.display = 'block';
+  }
+}
+function stopListening(){
+  listening = false;
+  try { recognition.stop(); } catch(e){}
+  micBtn.classList.remove('live');
+  micLabel.textContent = 'Listen';
+}
+
+// ---------- Browse all rules ----------
+const browseToggle = document.getElementById('browseToggle');
+const browsePanel = document.getElementById('browse-panel');
+const browseList = document.getElementById('browse-list');
+const browseSearch = document.getElementById('browse-search');
+
+function renderBrowseList(filter=''){
+  const f = filter.toLowerCase();
+  browseList.innerHTML = '';
+  GAMES[currentGame].rules
+    .filter(r => !f || r.title.toLowerCase().includes(f) || r.text.toLowerCase().includes(f) || r.keywords.some(k => k.includes(f)))
+    .forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'browse-item';
+      item.innerHTML = `
+        <div class="card-top">
+          <span class="card-title">${r.title}</span>
+          <span class="card-phase">${r.phase}</span>
+        </div>
+        <p class="card-text">${r.text}</p>
+        ${verifyLink()}
+      `;
+      browseList.appendChild(item);
+    });
+}
+
+browseToggle.addEventListener('click', () => {
+  const open = browsePanel.style.display === 'block';
+  browsePanel.style.display = open ? 'none' : 'block';
+  browseToggle.classList.toggle('open', !open);
+  if (!open) renderBrowseList();
+});
+browseSearch.addEventListener('input', e => renderBrowseList(e.target.value));
+</script>
+</body>
+</html>
