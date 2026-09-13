@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RuleRunner — Board Game Rules Companion</title>
+<link rel="icon" type="image/svg+xml" href="rulerunner-logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d0f13;
+    --panel: #15181e;
+    --panel-raised: #1b1f27;
+    --border: #262b35;
+    --bone: #e9ebf1;
+    --bone-dim: #a3a9b7;
+    --muted: #6b7280;
+    --blood: #ef4444;
+    --blood-bright: #f87171;
+    --gold: #f5a623;
+    --gold-dim: #c98716;
+    --info: #4db4f0;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-full: 999px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  }
+  body.theme-light{
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --panel-raised: #eef0f3;
+    --border: #dfe2e8;
+    --bone: #14161b;
+    --bone-dim: #4a4f5a;
+    --muted: #868c99;
+    --blood: #dc2626;
+    --blood-bright: #ef4444;
+    --gold: #b3720f;
+    --gold-dim: #8f5c0c;
+    --info: #0b6fa6;
+    --shadow-sm: 0 1px 2px rgba(20,22,30,0.07), 0 2px 8px rgba(20,22,30,0.05);
+    --shadow-md: 0 10px 28px rgba(20,22,30,0.1), 0 2px 8px rgba(20,22,30,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--bone);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    line-height:1.5;
+    transition:background-color 0.2s ease, color 0.2s ease;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:0 16px 32px;}
+
+  .topbar{
+    border-bottom:1px solid var(--border);
+    padding:10px 0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .logo-mark{width:26px;height:26px;color:var(--gold);flex-shrink:0;}
+  .home-icon-btn{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-full);
+    width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:var(--shadow-sm);transition:border-color 0.15s ease, transform 0.12s ease;
+    flex-shrink:0;
+  }
+  .home-icon-btn:hover{border-color:var(--gold-dim);}
+  .home-icon-btn:active{transform:scale(0.94);}
+  .home-icon-btn .logo-mark{width:20px;height:20px;}
+
+  /* game menu (dropdown) */
+  .game-menu{position:relative;min-width:0;flex-shrink:1;}
+  .game-menu summary{
+    list-style:none;
+    display:flex;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--border);color:var(--bone-dim);
+    font-family:'Inter',sans-serif;font-weight:600;font-size:0.76rem;
+    padding:6px 12px;border-radius:var(--radius-full);cursor:pointer;
+    box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+    max-width:100%;
+  }
+  #gameMenuLabel{
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    max-width:150px;
+  }
+  .game-menu summary::-webkit-details-marker{display:none;}
+  .game-menu summary::marker{content:"";}
+  .game-menu summary:hover{border-color:var(--gold-dim);}
+  .game-menu summary:active{transform:scale(0.97);}
+  .game-menu[open] summary{border-color:var(--gold);color:var(--bone);}
+  .chevron{width:10px;height:10px;flex-shrink:0;transition:transform 0.18s ease;}
+  .game-menu[open] .chevron{transform:rotate(180deg);}
+  .game-menu-list{
+    position:absolute;top:calc(100% + 8px);left:0;z-index:20;min-width:210px;
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:5px;box-shadow:var(--shadow-md);
+    animation:menuIn 0.15s ease;
+  }
+  @keyframes menuIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
+  .game-menu-search{
+    width:100%;background:var(--bg);border:1px solid var(--border);color:var(--bone);
+    padding:7px 10px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.8rem;
+    margin-bottom:5px;
+  }
+  .game-menu-search:focus{outline:none;border-color:var(--gold-dim);}
+  .game-menu-item{
+    padding:8px 12px;font-size:0.82rem;border-radius:var(--radius-sm);color:var(--bone);
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    cursor:pointer;transition:background 0.12s ease;
+  }
+  .game-menu-item:hover{background:var(--panel-raised);}
+  .game-menu-item.active{background:rgba(171,138,74,0.14);color:var(--bone);}
+  .game-menu-item.ghost{color:var(--muted);cursor:default;}
+  .game-menu-item.ghost:hover{background:none;}
+  .game-menu-item .tag{font-size:0.62rem;color:var(--gold);}
+
+  .header-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+
+  .theme-switch{position:relative;display:inline-flex;align-items:center;gap:7px;cursor:pointer;flex-shrink:0;}
+  .theme-switch input{display:none;}
+  .switch-track{
+    width:42px;height:23px;background:var(--panel-raised);border:1px solid var(--border);
+    border-radius:var(--radius-full);position:relative;transition:background 0.2s ease;flex-shrink:0;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .switch-thumb{
+    position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;
+    background:var(--gold);transition:transform 0.2s ease;
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);
+  }
+  .switch-thumb svg{position:absolute;width:10px;height:10px;color:var(--bg);transition:opacity 0.15s ease;}
+  .switch-thumb .icon-sun{opacity:0;}
+  .switch-thumb .icon-moon{opacity:1;}
+  .theme-switch input:checked ~ .switch-track .switch-thumb{transform:translateX(19px);}
+  .theme-switch input:checked ~ .switch-track .switch-thumb .icon-sun{opacity:1;}
+  .theme-switch input:checked ~ .switch-track .switch-thumb .icon-moon{opacity:0;}
+  .theme-switch input:checked ~ .switch-track{background:rgba(171,138,74,0.22);}
+  .switch-label{font-size:0.74rem;color:var(--bone-dim);font-weight:600;min-width:30px;}
+
+  .mic-btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel-raised);
+    border:1px solid var(--border);
+    color:var(--bone);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:0.84rem;
+    padding:12px 16px;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .mic-btn:hover{border-color:var(--gold-dim);}
+  .mic-btn:active{transform:scale(0.97);}
+  .mic-btn-full{
+    width:100%;justify-content:center;margin-top:10px;
+    padding:14px 16px;font-size:0.95rem;
+  }
+  .mic-btn-full .mic-icon{width:17px;height:17px;}
+  .mic-icon{width:15px;height:15px;flex-shrink:0;}
+  .mic-btn.live{
+    background:linear-gradient(180deg, rgba(239,68,68,0.18), rgba(239,68,68,0.08));
+    border-color:var(--blood-bright);color:var(--blood-bright);
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .mic-btn.live .dot{background:var(--blood-bright);animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(184,57,47,0.55);}
+    50%{ box-shadow:0 0 0 6px rgba(184,57,47,0);}
+  }
+
+  .caveat{
+    margin-top:8px;
+    padding:9px 12px;
+    border:1px solid var(--gold-dim);
+    background:rgba(171,138,74,0.07);
+    color:var(--bone-dim);
+    font-size:0.78rem;
+    border-radius:var(--radius-sm);
+    line-height:1.45;
+  }
+  .caveat a{color:var(--gold);}
+  .caveat.unsupported{display:none;border-color:var(--blood-bright);background:rgba(140,42,36,0.08);}
+
+  .fallback{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .input-wrap{position:relative;flex:1;min-width:140px;display:flex;align-items:center;}
+  .input-wrap .search-icon{position:absolute;left:13px;width:14px;height:14px;color:var(--muted);pointer-events:none;}
+  .fallback input{
+    width:100%;
+    background:var(--panel);border:1px solid var(--border);color:var(--bone);
+    padding:12px 14px 12px 36px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.9rem;
+    transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .fallback input:focus{outline:none;border-color:var(--gold-dim);box-shadow:var(--shadow-sm);}
+  .fallback button{
+    background:var(--panel-raised);border:1px solid var(--border);color:var(--bone);
+    padding:12px 20px;border-radius:var(--radius-sm);font-weight:600;font-size:0.85rem;cursor:pointer;
+    flex-shrink:0;box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, transform 0.12s ease;
+  }
+  .fallback button:hover{border-color:var(--gold-dim);}
+  .fallback button:active{transform:scale(0.96);}
+  .scan-feedback{
+    margin-top:6px;font-size:0.76rem;color:var(--muted);min-height:1.1em;
+    opacity:0;transition:opacity 0.25s ease;
+  }
+  .scan-feedback.show{opacity:1;}
+
+  .col-title{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:0.72rem;letter-spacing:0.02em;color:var(--gold);
+    margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);
+  }
+
+  #feed{display:flex;flex-direction:column;gap:10px;}
+  .empty-feed{
+    color:var(--muted);font-size:0.85rem;padding:22px 14px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--radius-sm);
+  }
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--gold);
+    border-radius:var(--radius-sm);padding:12px 14px;animation:slideIn 0.25s ease;
+    box-shadow:var(--shadow-sm);
+  }
+  .hero-card{
+    background:var(--panel);border:1px solid var(--border);border-left:5px solid var(--gold);
+    border-radius:var(--radius-md);padding:14px 16px;animation:slideIn 0.3s ease;
+    box-shadow:var(--shadow-md);
+  }
+  .hero-card .card-title{font-size:1.08rem;}
+  .hero-card .card-text{font-size:0.88rem;}
+  @keyframes slideIn{ from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
+  .card-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px;}
+  .card-title{font-family:'Inter',sans-serif;font-weight:700;font-size:0.95rem;color:var(--bone);}
+  .card-phase{font-size:0.66rem;color:var(--gold);letter-spacing:0.02em;white-space:nowrap;flex-shrink:0;}
+  .card-phase.clarification{color:var(--info);}
+  .card-text{font-size:0.85rem;color:var(--bone-dim);margin:0;}
+  .inline-rule-link{
+    color:var(--info);cursor:pointer;border-bottom:1px dotted var(--info);
+    transition:color 0.15s ease, border-color 0.15s ease;
+  }
+  .inline-rule-link:hover{color:var(--gold);border-color:var(--gold);}
+  .card-trigger{margin-top:6px;font-size:0.7rem;color:var(--muted);}
+  .card-trigger span{color:var(--gold);font-style:italic;}
+  .card-verify{margin-top:6px;font-size:0.7rem;}
+  .see-also{margin-top:10px;padding-top:9px;border-top:1px dashed var(--border);display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+  .see-also-label{font-size:0.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-right:2px;}
+  .see-also-link{
+    background:var(--panel-raised);border:1px solid var(--border);color:var(--info);
+    font-size:0.72rem;font-weight:600;padding:4px 10px;border-radius:var(--radius-full);
+    cursor:pointer;transition:border-color 0.15s ease, transform 0.12s ease;
+  }
+  .see-also-link:hover{border-color:var(--info);}
+  .see-also-link:active{transform:scale(0.95);}
+
+  .feedback-row{margin-top:10px;padding-top:9px;border-top:1px dashed var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .feedback-label{font-size:0.74rem;color:var(--muted);margin-right:2px;}
+  .feedback-btn{
+    background:var(--panel-raised);border:1px solid var(--border);color:var(--bone-dim);
+    width:30px;height:30px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;flex-shrink:0;
+  }
+  .feedback-btn:hover{border-color:var(--gold-dim);color:var(--bone);}
+  .feedback-btn:active{transform:scale(0.92);}
+  .feedback-btn.down .feedback-icon{transform:rotate(180deg);}
+  .feedback-icon{width:15px;height:15px;}
+  .feedback-thanks{font-size:0.78rem;color:var(--muted);font-style:italic;}
+  .feedback-comment-input{
+    flex:1;min-width:140px;background:var(--panel);border:1px solid var(--border);color:var(--bone);
+    padding:6px 10px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.8rem;
+  }
+  .feedback-comment-input:focus{outline:none;border-color:var(--gold-dim);}
+  .feedback-submit{
+    background:var(--panel-raised);border:1px solid var(--border);color:var(--bone);
+    padding:6px 12px;border-radius:var(--radius-sm);font-size:0.78rem;font-weight:600;cursor:pointer;
+    transition:border-color 0.15s ease;
+  }
+  .feedback-submit:hover{border-color:var(--gold-dim);}
+  .card-verify a{color:var(--gold);text-decoration:none;border-bottom:1px dotted var(--gold-dim);}
+  .card-verify a:hover{color:var(--bone);}
+
+  #recent-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+  .recent-item{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    background:var(--panel);border:1px solid var(--border);border-left:2px solid var(--gold);
+    border-radius:var(--radius-sm);padding:7px 12px;cursor:pointer;
+    transition:opacity 0.3s ease, border-color 0.15s ease, background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .recent-item:hover{opacity:1 !important;border-color:var(--gold);background:var(--panel-raised);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+  .recent-item:active{transform:translateY(0) scale(0.98);}
+  .recent-item .recent-title{font-family:'Inter',sans-serif;font-weight:700;font-size:0.8rem;color:var(--bone-dim);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .recent-item .recent-phase{font-size:0.6rem;color:var(--muted);letter-spacing:0.02em;white-space:nowrap;flex-shrink:0;}
+  .recent-item .recent-phase.clarification{color:var(--info);}
+
+  .browse-toggle{
+    margin-top:20px;background:none;border:none;color:var(--gold);font-family:'Inter',sans-serif;font-weight:700;
+    font-size:0.76rem;letter-spacing:0.02em;cursor:pointer;padding:0;
+    display:flex;align-items:center;gap:6px;
+  }
+  .browse-toggle .chevron{width:9px;height:9px;transform:rotate(-90deg);}
+  .browse-toggle.open .chevron{transform:rotate(0deg);}
+
+  .browse-all-btn{
+    width:100%;margin-top:24px;background:var(--panel);border:1px solid var(--border);
+    color:var(--gold);font-family:'Inter',sans-serif;font-weight:700;font-size:0.85rem;
+    padding:13px 16px;border-radius:var(--radius-sm);cursor:pointer;box-shadow:var(--shadow-sm);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:border-color 0.15s ease, transform 0.12s ease;
+  }
+  .browse-all-btn:hover{border-color:var(--gold-dim);}
+  .browse-all-btn:active{transform:scale(0.98);}
+
+  .howtoplay-btn{
+    width:100%;margin-top:10px;background:var(--panel);border:1px solid var(--info);
+    color:var(--info);font-family:'Inter',sans-serif;font-weight:700;font-size:0.85rem;
+    padding:12px 16px;border-radius:var(--radius-sm);cursor:pointer;box-shadow:var(--shadow-sm);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:border-color 0.15s ease, transform 0.12s ease, background 0.15s ease;
+  }
+  .howtoplay-btn:hover{background:var(--panel-raised);}
+  .howtoplay-btn:active{transform:scale(0.98);}
+  .howtoplay-icon{width:16px;height:16px;flex-shrink:0;}
+  .howtoplay-btn .chevron{width:9px;height:9px;transform:rotate(-90deg);flex-shrink:0;}
+  .howtoplay-btn.open .chevron{transform:rotate(0deg);}
+  #howtoplay-panel{display:none;margin:10px 0 4px;}
+  #browse-panel{display:none;margin-top:12px;}
+  #browse-search{
+    width:100%;background:var(--panel);border:1px solid var(--border);color:var(--bone);
+    padding:9px 12px 9px 32px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:0.86rem;margin-bottom:12px;
+    transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  #browse-search:focus{outline:none;border-color:var(--gold-dim);box-shadow:var(--shadow-sm);}
+  #browse-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:600px){ #browse-list{grid-template-columns:1fr;} }
+  .browse-item{background:var(--panel);border:1px solid var(--border);padding:10px 13px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);}
+  .browse-item .card-title{font-size:0.86rem;}
+  .browse-item .card-text{font-size:0.8rem;}
+
+  .missed-count{
+    background:var(--panel-raised);color:var(--bone-dim);font-size:0.68rem;font-weight:700;
+    padding:1px 7px;border-radius:var(--radius-full);border:1px solid var(--border);
+  }
+  #missed-panel{display:none;margin-top:12px;}
+  .missed-note{font-size:0.78rem;color:var(--muted);line-height:1.5;margin:0 0 10px;}
+  .missed-subheading{font-family:'Inter',sans-serif;font-weight:700;font-size:0.72rem;color:var(--gold);
+    letter-spacing:0.02em;margin:16px 0 8px;text-transform:none;}
+  .missed-subheading:first-of-type{margin-top:0;}
+  .feedback-item{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:9px 12px;box-shadow:var(--shadow-sm);margin-bottom:6px;
+  }
+  .feedback-item .feedback-vote{font-size:0.7rem;font-weight:700;margin-right:6px;}
+  .feedback-item .feedback-vote.up{color:var(--gold);}
+  .feedback-item .feedback-vote.down{color:var(--blood-bright);}
+  .feedback-item .feedback-item-title{font-size:0.85rem;color:var(--bone);}
+  .feedback-item .feedback-item-comment{font-size:0.8rem;color:var(--bone-dim);margin:4px 0 0;font-style:italic;}
+  .feedback-item .feedback-item-meta{font-size:0.68rem;color:var(--muted);display:block;margin-top:4px;}
+  .missed-actions{display:flex;gap:8px;margin-bottom:12px;}
+  .missed-actions button{
+    background:var(--panel-raised);border:1px solid var(--border);color:var(--bone);
+    padding:8px 14px;border-radius:var(--radius-sm);font-weight:600;font-size:0.78rem;cursor:pointer;
+    box-shadow:var(--shadow-sm);transition:border-color 0.15s ease, transform 0.12s ease;
+  }
+  .missed-actions button:hover{border-color:var(--gold-dim);}
+  .missed-actions button:active{transform:scale(0.96);}
+  .missed-actions button.danger:hover{border-color:var(--blood-bright);color:var(--blood-bright);}
+  #missed-list{display:flex;flex-direction:column;gap:6px;}
+  .missed-item{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:9px 12px;box-shadow:var(--shadow-sm);
+  }
+  .missed-item .missed-text{font-size:0.85rem;color:var(--bone);margin:0 0 4px;}
+  .missed-item .missed-meta{font-size:0.68rem;color:var(--muted);}
+  .missed-empty{color:var(--muted);font-size:0.82rem;padding:14px;text-align:center;border:1px dashed var(--border);border-radius:var(--radius-sm);}
+
+  .site-footer{
+    margin-top:32px;padding-top:14px;border-top:1px solid var(--border);
+    font-size:0.7rem;color:var(--muted);line-height:1.6;
+  }
+  .back-home-link{
+    background:none;border:none;color:var(--gold);font-size:0.72rem;font-weight:600;
+    cursor:pointer;padding:8px 0 0;font-family:'Inter',sans-serif;
+  }
+  .back-home-link:hover{color:var(--bone);}
+
+  /* ---- Landing view ---- */
+  #landingView{padding:28px 0 20px;}
+  .landing-brand{text-align:center;margin-bottom:22px;}
+  .landing-logo{width:52px;height:52px;color:var(--gold);margin-bottom:10px;}
+  .landing-title{
+    font-family:'Inter',sans-serif;font-weight:800;font-size:1.7rem;letter-spacing:-0.01em;
+    color:var(--bone);margin:0 0 8px;
+  }
+  .landing-tagline{color:var(--bone-dim);font-size:0.9rem;margin:0;max-width:34ch;margin-left:auto;margin-right:auto;line-height:1.5;}
+
+  .landing-howto{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:14px 16px 2px;margin:0 0 20px;box-shadow:var(--shadow-sm);
+  }
+  .howto-step{
+    display:grid;grid-template-columns:22px 1fr;column-gap:10px;align-items:start;
+    font-size:0.82rem;color:var(--bone-dim);line-height:1.4;
+    padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--border);
+  }
+  .howto-step:last-child{border-bottom:none;margin-bottom:0;padding-bottom:12px;}
+  .howto-step strong{color:var(--gold);font-weight:600;white-space:nowrap;}
+  .howto-num{
+    width:22px;height:22px;border-radius:50%;background:var(--panel-raised);
+    color:var(--gold);font-size:0.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--border);margin-top:1px;
+  }
+
+  .landing-section-title{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:0.78rem;letter-spacing:0.02em;
+    color:var(--gold);margin:0 0 12px;
+  }
+  .landing-search-row{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
+  .landing-search-row .mic-btn{padding:11px;flex-shrink:0;}
+  .landing-search-row .mic-icon{width:16px;height:16px;}
+  .landing-game-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:26px;}
+  .landing-no-results{color:var(--muted);font-size:0.85rem;padding:22px 14px;text-align:center;border:1px dashed var(--border);border-radius:var(--radius-sm);}
+  .landing-game-card{
+    display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius-md);padding:14px 16px;cursor:pointer;box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+    font-family:'Inter',sans-serif;color:var(--bone);
+  }
+  .landing-game-card:hover{border-color:var(--gold);box-shadow:var(--shadow-md);}
+  .landing-game-card:active{transform:scale(0.98);}
+  .landing-game-card .lg-name{font-weight:700;font-size:0.98rem;display:block;margin-bottom:3px;}
+  .landing-game-card .lg-desc{font-weight:400;font-size:0.8rem;color:var(--muted);}
+  .landing-game-card.ghost{
+    opacity:0.5;cursor:default;border-style:dashed;
+  }
+  .landing-game-card.ghost:hover{border-color:var(--border);box-shadow:var(--shadow-sm);}
+
+  .landing-theme-switch{
+    display:flex;justify-content:center;gap:8px;margin:0 auto 8px;width:fit-content;
+  }
+  .landing-footer{border-top:1px solid var(--border);margin-top:10px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="landingView">
+    <div class="landing-brand">
+      <svg class="logo-mark landing-logo" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="32" cy="32" r="24"/>
+        <line x1="32" y1="3" x2="32" y2="10"/>
+        <line x1="32" y1="54" x2="32" y2="61"/>
+        <line x1="3" y1="32" x2="10" y2="32"/>
+        <line x1="54" y1="32" x2="61" y2="32"/>
+        <path d="M20 28c0-8 5.5-14 12-14s12 6 12 14c0 5-2 8-3.5 10.5-1 1.7-1.5 3-1.5 4.5v3c0 1.5-1 2.5-2.5 2.5h-9c-1.5 0-2.5-1-2.5-2.5v-3c0-1.5-.5-2.8-1.5-4.5C22 36 20 33 20 28z"/>
+        <circle cx="26.5" cy="28" r="2.1" fill="currentColor" stroke="none"/>
+        <circle cx="37.5" cy="28" r="2.1" fill="currentColor" stroke="none"/>
+        <line x1="27" y1="44" x2="27" y2="47"/>
+        <line x1="32" y1="44.5" x2="32" y2="48"/>
+        <line x1="37" y1="44" x2="37" y2="47"/>
+      </svg>
+      <h1 class="landing-title">RuleRunner</h1>
+      <p class="landing-tagline">Ask a rules question mid-game and get a straight answer, fast.</p>
+    </div>
+
+    <div class="landing-howto">
+      <div class="howto-step"><span class="howto-num">1</span><span class="howto-text">Pick the game you're playing below.</span></div>
+      <div class="howto-step"><span class="howto-num">2</span><span class="howto-text">Type a question, or tap <strong>Listen</strong> to catch it from the table talk.</span></div>
+      <div class="howto-step"><span class="howto-num">3</span><span class="howto-text">Tap a linked term to jump to that rule, or <strong>Browse all rules</strong> to see everything.</span></div>
+    </div>
+
+    <h2 class="landing-section-title">Choose a game</h2>
+    <div class="landing-search-row">
+      <button class="mic-btn" id="landingMicBtn">
+        <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+        <span class="dot"></span>
+      </button>
+      <div class="input-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="landingGameSearch" placeholder="Search or say a game name…">
+      </div>
+    </div>
+    <div class="landing-game-grid" id="landingGameGrid"></div>
+
+    <label class="theme-switch landing-theme-switch">
+      <input type="checkbox" id="themeCheckboxLanding">
+      <span class="switch-track">
+        <span class="switch-thumb">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+      </span>
+      <span class="switch-label" id="themeLabelLanding">Dark</span>
+    </label>
+
+    <footer class="site-footer landing-footer">
+      &copy; 2026 [Your Name]. All rights reserved.<br>
+      Unofficial fan project. Game names, mechanics, and trademarks belong to their respective publishers. Not affiliated with or endorsed by any of them.
+    </footer>
+  </div>
+
+  <div id="appView" style="display:none;">
+
+  <div class="topbar">
+    <details class="game-menu" id="gameMenu">
+      <summary><span id="gameMenuLabel">Spirit Island</span>
+        <svg class="chevron" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5L6 6.5L11 1.5"/></svg>
+      </summary>
+      <div class="game-menu-list">
+        <input type="text" id="gameMenuSearch" class="game-menu-search" placeholder="Search games…">
+        <div id="gameMenuItems"></div>
+      </div>
+    </details>
+
+    <button class="home-icon-btn" id="homeIconBtn" aria-label="Back to start / switch game">
+      <svg class="logo-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="32" cy="32" r="24"/>
+        <line x1="32" y1="3" x2="32" y2="10"/>
+        <line x1="32" y1="54" x2="32" y2="61"/>
+        <line x1="3" y1="32" x2="10" y2="32"/>
+        <line x1="54" y1="32" x2="61" y2="32"/>
+        <path d="M20 28c0-8 5.5-14 12-14s12 6 12 14c0 5-2 8-3.5 10.5-1 1.7-1.5 3-1.5 4.5v3c0 1.5-1 2.5-2.5 2.5h-9c-1.5 0-2.5-1-2.5-2.5v-3c0-1.5-.5-2.8-1.5-4.5C22 36 20 33 20 28z"/>
+        <circle cx="26.5" cy="28" r="2.1" fill="currentColor" stroke="none"/>
+        <circle cx="37.5" cy="28" r="2.1" fill="currentColor" stroke="none"/>
+        <line x1="27" y1="44" x2="27" y2="47"/>
+        <line x1="32" y1="44.5" x2="32" y2="48"/>
+        <line x1="37" y1="44" x2="37" y2="47"/>
+      </svg>
+    </button>
+
+    <label class="theme-switch">
+      <input type="checkbox" id="themeCheckbox">
+      <span class="switch-track">
+        <span class="switch-thumb">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+      </span>
+      <span class="switch-label" id="themeLabel">Dark</span>
+    </label>
+  </div>
+
+  <button class="mic-btn mic-btn-full" id="micBtn">
+    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+    <span class="dot"></span>
+    <span id="micLabel">Listen</span>
+  </button>
+
+  <div class="fallback">
+    <div class="input-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="manualInput" placeholder="Type or paste a line from the table talk…">
+    </div>
+    <button id="scanBtn">Go!</button>
+  </div>
+  <div class="scan-feedback" id="scanFeedback"></div>
+
+  <div class="caveat unsupported" id="unsupportedNotice">
+    This browser doesn't support live speech recognition (works best in Chrome or Edge). Use the text box below instead — paste or type what's being said and hit Go!.
+  </div>
+  <div class="caveat unsupported" id="insecureNotice">
+    This page was opened as a local file (<code>file://…</code>), and browsers block microphone access on local files for security reasons. Live listening needs the page served over <code>https://</code> or <code>localhost</code> — try hosting it (e.g. GitHub Pages, Netlify) or running a quick local server (<code>python3 -m http.server</code> in the file's folder, then open <code>http://localhost:8000</code>). The text box below works fine either way.
+  </div>
+  <div class="caveat unsupported" id="micErrorNotice"></div>
+
+  <button class="howtoplay-btn" id="howtoplayToggle">
+    <svg class="howtoplay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.5 5 8.5 4.5 6 5v13c2.5-.5 4.5 0 6 1.5 1.5-1.5 3.5-2 6-1.5V5c-2.5-.5-4.5 0-6 1.5z"/><path d="M12 6.5V20"/></svg>
+    <span id="howtoplayLabel">How to play</span>
+    <svg class="chevron" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5L6 6.5L11 1.5"/></svg>
+  </button>
+  <div id="howtoplay-panel"></div>
+
+  <div id="hero-slot">
+    <div class="empty-feed" id="emptyFeed">Start listening, or type a phrase above — try "how does blight work?".</div>
+  </div>
+  <div id="recent-list"></div>
+
+  <button class="browse-all-btn" id="browseToggle">
+    Browse all rules
+  </button>
+  <div id="browse-panel">
+    <div class="input-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="browse-search" placeholder="Filter the full index…">
+    </div>
+    <div id="browse-list"></div>
+  </div>
+
+  <button class="browse-toggle" id="missedToggle">
+    <svg class="chevron" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5L6 6.5L11 1.5"/></svg>
+    Feedback &amp; unanswered questions <span class="missed-count" id="missedCount"></span>
+  </button>
+  <div id="missed-panel">
+    <p class="missed-note">Shows unanswered questions and rule votes for <strong id="missedGameLabel">this game</strong> only. Export always downloads everything across every game — handy for reviewing it all in one batch.</p>
+    <div class="missed-actions">
+      <button id="missedExportBtn">Export as JSON</button>
+      <button id="missedClearBtn" class="danger">Clear this game</button>
+    </div>
+    <h3 class="missed-subheading">Unanswered questions</h3>
+    <div id="missed-list"></div>
+    <h3 class="missed-subheading">Rule feedback</h3>
+    <div id="feedback-list"></div>
+  </div>
+
+  <footer class="site-footer">
+    &copy; 2026 [Your Name]. All rights reserved.<br>
+    Unofficial fan project. Game names, mechanics, and trademarks belong to their respective publishers. Not affiliated with or endorsed by any of them.<br>
+    <button class="back-home-link" id="backHomeBtn">&larr; Switch game / back to start</button>
+  </footer>
+
+  </div>
+
+</div>
+
+<script>const GAMES = {};</script>
+<script src="games-list.js"></script>
+<script>
+  // Synchronously inject one <script src="..."> per game listed in
+  // games-list.js, in the same document-parse stream — this preserves the
+  // exact same load-order guarantee the static tags used to give (each game
+  // file finishes loading and runs before the app script below starts),
+  // without index.html ever needing to know which games exist.
+  GAME_LIST.forEach(function(g){
+    document.write('<scr' + 'ipt src="' + g.file + '"></scr' + 'ipt>');
+  });
+</script>
+
+<script>
+// ---------- Games & rules database ----------
+// Rule content lives in the per-game files listed in games-list.js and
+// loaded just above. Each of those files adds exactly one key to the GAMES
+// object declared above them. To add a new game: create its data/<id>.js
+// file and add one entry to games-list.js — index.html itself never needs
+// to change. See RULES-PROCESS.md.
+
+// ---------- Unresolved-question log ----------
+// Captures questions that found no keyword match, so you can review what
+// people actually asked and turn the common ones into new clarifications.
+//
+// Currently stored locally per-device (localStorage) — nothing leaves the
+// browser. To later capture this from every visitor instead of just one
+// device, replace the body of UnresolvedLog.record() with a fetch() POST to
+// your own backend endpoint; every call site in this file already goes
+// through this one function, so that's the only place that needs to change.
+const UnresolvedLog = (() => {
+  const STORAGE_KEY = "rulerunner_unresolved_v1";
+  const MAX_ENTRIES = 300;
+
+  function readAll(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return []; // localStorage unavailable (e.g. private browsing, sandboxed preview)
+    }
+  }
+
+  function writeAll(entries){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+    catch (e) { /* storage full or unavailable — fail silently, not critical */ }
+  }
+
+  return {
+    // SWAP POINT: to capture from every visitor instead of just this device,
+    // replace this function's body with something like:
+    //   fetch('https://your-backend.example.com/log-miss', {
+    //     method: 'POST', headers: {'Content-Type':'application/json'},
+    //     body: JSON.stringify({ text, game: gameId, ts: Date.now() })
+    //   });
+    // Everything else in the app calls only this function, so nothing else
+    // needs to change when you make that swap.
+    record(text, gameId){
+      const entries = readAll();
+      entries.push({ text, game: gameId, ts: Date.now() });
+      while (entries.length > MAX_ENTRIES) entries.shift();
+      writeAll(entries);
+    },
+    getAll(){
+      return readAll().slice().reverse(); // most recent first
+    },
+    getForGame(gameId){
+      return readAll().filter(e => e.game === gameId).reverse();
+    },
+    clear(){
+      writeAll([]);
+    },
+    clearGame(gameId){
+      writeAll(readAll().filter(e => e.game !== gameId));
+    },
+    count(){
+      return readAll().length;
+    },
+    countForGame(gameId){
+      return readAll().filter(e => e.game === gameId).length;
+    }
+  };
+})();
+
+// ---------- Rule feedback log ----------
+// Captures thumbs up/down votes on individual rule cards, plus an optional
+// short comment on a thumbs-down, so you can find out which rules people
+// think are wrong or unclear. Same local-device-first, single-swap-point
+// design as UnresolvedLog above.
+const FeedbackLog = (() => {
+  const STORAGE_KEY = "rulerunner_feedback_v1";
+  const MAX_ENTRIES = 500;
+
+  function readAll(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writeAll(entries){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+    catch (e) { /* storage full or unavailable — fail silently, not critical */ }
+  }
+
+  return {
+    // SWAP POINT: same idea as UnresolvedLog.record() — replace this body
+    // with a fetch() POST to your backend to collect votes from every
+    // visitor instead of just this device.
+    record(ruleId, ruleTitle, gameId, vote, comment){
+      const entries = readAll();
+      entries.push({ ruleId, ruleTitle, game: gameId, vote, comment: comment || '', ts: Date.now() });
+      while (entries.length > MAX_ENTRIES) entries.shift();
+      writeAll(entries);
+    },
+    getAll(){
+      return readAll().slice().reverse();
+    },
+    getForGame(gameId){
+      return readAll().filter(e => e.game === gameId).reverse();
+    },
+    clear(){
+      writeAll([]);
+    },
+    clearGame(gameId){
+      writeAll(readAll().filter(e => e.game !== gameId));
+    },
+    count(){
+      return readAll().length;
+    },
+    countForGame(gameId){
+      return readAll().filter(e => e.game === gameId).length;
+    }
+  };
+})();
+
+
+// ---------- Typo-tolerant matching ----------
+// Real table talk gets mistyped: missing spaces ("chargephase"), wrong letters
+// ("chrage"), or swapped/dropped letters. Rather than hand-listing every typo
+// per rule, matching tolerates both automatically:
+//  - missing/extra spaces: compare against the input with all whitespace removed
+//  - letter-level typos: compare individual words by edit distance, not exact string
+
+// Restricted edit distance (insertions, deletions, substitutions, and adjacent
+// transpositions like "hte" for "the") — good enough for short game terms.
+function editDistance(a, b){
+  const al = a.length, bl = b.length;
+  const d = Array.from({length: al + 1}, () => new Array(bl + 1).fill(0));
+  for (let i = 0; i <= al; i++) d[i][0] = i;
+  for (let j = 0; j <= bl; j++) d[0][j] = j;
+  for (let i = 1; i <= al; i++){
+    for (let j = 1; j <= bl; j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + cost);
+      if (i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]){
+        d[i][j] = Math.min(d[i][j], d[i-2][j-2] + cost);
+      }
+    }
+  }
+  return d[al][bl];
+}
+
+// How many typo'd letters we tolerate scales with word length, and very short
+// words (like "oc" or "cp") require an exact match so we don't get noise.
+function fuzzyWordMatch(word, keywordWord){
+  if (word === keywordWord) return true;
+  const maxLen = Math.max(word.length, keywordWord.length);
+  if (maxLen <= 3) return false;
+  const threshold = maxLen <= 6 ? 1 : 2;
+  if (Math.abs(word.length - keywordWord.length) > threshold) return false;
+  return editDistance(word, keywordWord) <= threshold;
+}
+
+// Small set of near-meaningless connector words that commonly vary between
+// otherwise-identical phrasings ("steps in the phase" vs "steps of the
+// phase", "phases of a turn" vs "phases in a turn"). Stripping these from
+// both keywords and input means that whole class of mismatch stops
+// mattering, instead of needing every phrasing manually added as a keyword.
+// Deliberately conservative — pronouns and verbs are left untouched, since
+// short phrases like "can i see" or "is it hidden" rely on them to still
+// mean something once reduced.
+const FILLER_WORDS = new Set(['a','an','the','of','in','on','at','by']);
+
+function stripFillerWords(tokens){
+  const filtered = tokens.filter(t => !FILLER_WORDS.has(t));
+  return filtered.length > 0 ? filtered : tokens; // never strip down to nothing
+}
+
+// Normalize text into plain lowercase word tokens — hyphens and punctuation
+// all collapse to spaces so "battle-shock" and "battle shock" behave the same,
+// and filler words are dropped so minor phrasing differences don't break an
+// otherwise-correct match.
+function tokenize(text){
+  const raw = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+  return stripFillerWords(raw);
+}
+
+// True if the keyword's words appear, in order, as a fuzzy-matching run of
+// consecutive tokens anywhere in the input.
+function keywordMatchesTokens(keywordWords, tokens){
+  if (keywordWords.length > tokens.length) return false;
+  for (let start = 0; start <= tokens.length - keywordWords.length; start++){
+    let ok = true;
+    for (let j = 0; j < keywordWords.length; j++){
+      if (!fuzzyWordMatch(tokens[start + j], keywordWords[j])) { ok = false; break; }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+// build a flat lookup of {rule, text, precomputed word forms} for a given game
+function buildIndexForGame(gameId){
+  const idx = [];
+  const game = GAMES[gameId];
+  for (const rule of game.rules){
+    for (const kw of rule.keywords){
+      const words = tokenize(kw);
+      idx.push({ kw, rule, text: rule.text, words, squashed: words.join('') });
+    }
+  }
+  // Clarifications always win the hero slot over a plain rule when both
+  // match, regardless of which matched keyword happens to be longer —
+  // keyword length is only a tiebreaker within the same tier.
+  idx.sort((a,b) => {
+    const aClar = a.rule.phase === "Clarification" ? 1 : 0;
+    const bClar = b.rule.phase === "Clarification" ? 1 : 0;
+    if (aClar !== bClar) return bClar - aClar;
+    return b.kw.length - a.kw.length;
+  });
+  return idx;
+}
+
+let currentGame = DEFAULT_GAME;
+let KEYWORD_INDEX = buildIndexForGame(currentGame);
+
+const seenRecently = new Map();
+const COOLDOWN_MS = 15000;
+
+function scanText(text, bypassCooldown, source){
+  const tokens = tokenize(text);
+  const squashedInput = tokens.join('');
+  const now = Date.now();
+  const matched = [];
+  const queuedThisCall = new Set();
+  let anyKeywordHit = false;
+
+  for (const {kw, rule, text: ruleText, words, squashed} of KEYWORD_INDEX){
+    const isMatch = keywordMatchesTokens(words, tokens) ||
+      (squashed.length > 3 && squashedInput.includes(squashed));
+    if (!isMatch) continue;
+
+    anyKeywordHit = true;
+    if (queuedThisCall.has(rule.id)) continue;
+
+    const last = seenRecently.get(rule.id) || 0;
+    if (bypassCooldown || now - last > COOLDOWN_MS){
+      seenRecently.set(rule.id, now);
+      matched.push({rule, trigger: kw, text: ruleText});
+      queuedThisCall.add(rule.id);
+    }
+  }
+  // Process the least-specific match first so the most specific (longest
+  // keyword) match is the last one surfaced — and therefore the hero.
+  matched.slice().reverse().forEach(surfaceRule);
+
+  // Only log misses from typed queries. Live listening picks up ordinary
+  // table talk constantly, and logging every unmatched sentence overheard
+  // during a game would drown out the genuinely useful signal.
+  if (!anyKeywordHit && source === 'manual' && text.trim().length > 0){
+    UnresolvedLog.record(text.trim(), currentGame);
+  }
+  return anyKeywordHit;
+}
+
+function verifyLink(){
+  const url = GAMES[currentGame].infoUrl;
+  return `<div class="card-verify"><a href="${url}" target="_blank" rel="noopener">↗ more info</a></div>`;
+}
+
+function findRuleById(ruleId){
+  return GAMES[currentGame].rules.find(r => r.id === ruleId);
+}
+
+// Any clarification whose relatedTo points at this rule — shown as a "See
+// also" list so it's discoverable regardless of what phrasing found the
+// base rule in the first place.
+function seeAlsoLinks(ruleId){
+  const related = GAMES[currentGame].rules.filter(r => r.relatedTo === ruleId);
+  if (related.length === 0) return '';
+  const items = related.map(r =>
+    `<button class="see-also-link" data-rule-id="${r.id}">❓ ${r.title}</button>`
+  ).join('');
+  return `<div class="see-also"><span class="see-also-label">See also</span>${items}</div>`;
+}
+
+// Brings any rule (base or clarification) to the hero slot directly, used
+// by "See also" links rather than requiring an exact keyword match.
+function jumpToRule(ruleId){
+  const rule = findRuleById(ruleId);
+  if (!rule) return;
+  surfaceRule({ rule, trigger: rule.keywords[0], text: rule.text });
+  document.getElementById('hero-slot').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ---------- Inline cross-links within rule text ----------
+// Some rules mention another rule by name in their own body text (e.g. the
+// Command Phase overview mentions "Battle-shock"). This turns those mentions
+// into live links to the referenced rule's card, using a curated list of
+// distinctive terms per rule (see each rule's `linkTerm`) rather than
+// linking every word — generic terms like "move" or "fight" are deliberately
+// left alone so the text doesn't turn into a wall of noisy links.
+function escapeRegExp(s){
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildLinkTerms(gameId){
+  const terms = [];
+  for (const rule of GAMES[gameId].rules){
+    if (!rule.linkTerm) continue;
+    const aliases = Array.isArray(rule.linkTerm) ? rule.linkTerm : [rule.linkTerm];
+    for (const alias of aliases) terms.push({ term: alias, ruleId: rule.id });
+  }
+  // Longest term first, so e.g. "Fire Overwatch" is tried before "Overwatch".
+  terms.sort((a,b) => b.term.length - a.term.length);
+  return terms;
+}
+
+function linkifyText(text, gameId, excludeRuleId){
+  const terms = buildLinkTerms(gameId).filter(t => t.ruleId !== excludeRuleId);
+  if (terms.length === 0) return text;
+
+  const pattern = terms.map(t => escapeRegExp(t.term)).join('|');
+  const re = new RegExp('\\b(' + pattern + ')\\b', 'gi');
+  const linkedAlready = new Set(); // only the first mention of a given rule gets linked per card
+
+  return text.replace(re, (match) => {
+    const lower = match.toLowerCase();
+    const found = terms.find(t => t.term.toLowerCase() === lower);
+    if (!found || linkedAlready.has(found.ruleId)) return match;
+    linkedAlready.add(found.ruleId);
+    return `<span class="inline-rule-link" data-rule-id="${found.ruleId}">${match}</span>`;
+  });
+}
+
+function wireInlineLinks(container){
+  container.querySelectorAll('.inline-rule-link').forEach(el => {
+    el.addEventListener('click', () => jumpToRule(el.dataset.ruleId));
+  });
+}
+
+function wireSeeAlsoLinks(container){
+  container.querySelectorAll('.see-also-link').forEach(el => {
+    el.addEventListener('click', () => jumpToRule(el.dataset.ruleId));
+  });
+}
+
+// Thumb-shaped icon (same path rotated 180° for thumbs-down) so this stays
+// consistent with the app's other line icons rather than relying on emoji,
+// which render inconsistently across platforms and fonts.
+const THUMB_ICON_PATH = 'M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3';
+
+function feedbackWidget(rule){
+  const safeTitle = rule.title.replace(/"/g, '&quot;');
+  return `
+    <div class="feedback-row" data-rule-id="${rule.id}" data-rule-title="${safeTitle}">
+      <span class="feedback-label">Is this right?</span>
+      <button class="feedback-btn up" aria-label="This looks correct">
+        <svg class="feedback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${THUMB_ICON_PATH}"/></svg>
+      </button>
+      <button class="feedback-btn down" aria-label="Something's off">
+        <svg class="feedback-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${THUMB_ICON_PATH}"/></svg>
+      </button>
+    </div>
+  `;
+}
+
+function wireFeedbackButtons(container){
+  container.querySelectorAll('.feedback-row').forEach(row => {
+    const ruleId = row.dataset.ruleId;
+    const ruleTitle = row.dataset.ruleTitle;
+
+    row.querySelector('.feedback-btn.up').addEventListener('click', () => {
+      FeedbackLog.record(ruleId, ruleTitle, currentGame, 'up', '');
+      row.innerHTML = `<span class="feedback-thanks">Thanks — glad that helped.</span>`;
+    });
+
+    row.querySelector('.feedback-btn.down').addEventListener('click', () => {
+      row.innerHTML = `
+        <input type="text" class="feedback-comment-input" placeholder="What's wrong or unclear? (optional)">
+        <button class="feedback-submit">Submit</button>
+      `;
+      const input = row.querySelector('.feedback-comment-input');
+      input.focus();
+      const submit = () => {
+        FeedbackLog.record(ruleId, ruleTitle, currentGame, 'down', input.value.trim());
+        row.innerHTML = `<span class="feedback-thanks">Thanks — logged for review.</span>`;
+      };
+      row.querySelector('.feedback-submit').addEventListener('click', submit);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    });
+  });
+}
+
+
+// History of surfaced rules, kept separately per game so switching games
+// never shows one game's rules mixed with another's — and switching back
+// to a game restores where you left off, rather than losing it.
+// Most recent first; index 0 is always the hero. Only the newest entry plus
+// the next 5 are ever shown; older ones just drop off.
+const historyByGame = {};
+for (const gameId of Object.keys(GAMES)) historyByGame[gameId] = [];
+const MAX_VISIBLE_RECENT = 5;
+
+function getHistory(){
+  return historyByGame[currentGame];
+}
+
+function surfaceRule(entry){
+  let history = getHistory();
+  // If this rule is already sitting somewhere in the visible history, pull it
+  // out first so re-triggering it moves it to the front rather than duplicating it.
+  history = history.filter(e => e.rule.id !== entry.rule.id);
+  history.unshift(entry);
+  historyByGame[currentGame] = history.slice(0, MAX_VISIBLE_RECENT + 1);
+  renderFeed();
+}
+
+function recallRule(index){
+  const history = getHistory();
+  const [entry] = history.splice(index, 1);
+  history.unshift(entry);
+  renderFeed();
+}
+
+function renderFeed(){
+  const surfaceHistory = getHistory();
+  const heroSlot = document.getElementById('hero-slot');
+  const recentList = document.getElementById('recent-list');
+
+  if (surfaceHistory.length === 0){
+    heroSlot.innerHTML = `<div class="empty-feed" id="emptyFeed">Start listening, or type a phrase above — try "${GAMES[currentGame].example}".</div>`;
+    recentList.innerHTML = '';
+    return;
+  }
+
+  const hero = surfaceHistory[0];
+  heroSlot.innerHTML = `
+    <div class="hero-card">
+      <div class="card-top">
+        <span class="card-title">${hero.rule.title}</span>
+        <span class="card-phase${hero.rule.phase === 'Clarification' ? ' clarification' : ''}">${hero.rule.phase}</span>
+      </div>
+      <p class="card-text">${linkifyText(hero.text, currentGame, hero.rule.id)}</p>
+      <div class="card-trigger">heard: <span>"${hero.trigger}"</span></div>
+      ${feedbackWidget(hero.rule)}
+      ${seeAlsoLinks(hero.rule.id)}
+      ${verifyLink()}
+    </div>
+  `;
+  wireSeeAlsoLinks(heroSlot);
+  wireFeedbackButtons(heroSlot);
+  wireInlineLinks(heroSlot);
+
+  const rest = surfaceHistory.slice(1);
+  recentList.innerHTML = rest.map((entry, i) => {
+    // Fade progressively the further back in the history an item sits.
+    const opacity = (0.82 - i * 0.15).toFixed(2);
+    return `
+      <div class="recent-item" style="opacity:${opacity}" data-index="${i + 1}">
+        <span class="recent-title">${entry.rule.title}</span>
+        <span class="recent-phase${entry.rule.phase === 'Clarification' ? ' clarification' : ''}">${entry.rule.phase}</span>
+      </div>
+    `;
+  }).join('');
+
+  recentList.querySelectorAll('.recent-item').forEach(el => {
+    el.addEventListener('click', () => recallRule(parseInt(el.dataset.index, 10)));
+  });
+}
+
+// ---------- Manual fallback ----------
+document.getElementById('scanBtn').addEventListener('click', runManualScan);
+document.getElementById('manualInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runManualScan();
+});
+function runManualScan(){
+  const input = document.getElementById('manualInput');
+  const text = input.value.trim();
+  if (!text) return;
+  // Manual entries bypass the cooldown — typing something is a deliberate
+  // request, so it should always surface a match if one exists, even if the
+  // same rule was just shown seconds ago.
+  const found = scanText(text, true, 'manual');
+  const feedback = document.getElementById('scanFeedback');
+  if (!found){
+    feedback.textContent = `No rule matched "${text}" — try different wording, or browse all rules below.`;
+    feedback.classList.add('show');
+  } else {
+    feedback.classList.remove('show');
+  }
+  input.value = '';
+}
+
+// ---------- Theme toggle ----------
+const themeCheckbox = document.getElementById('themeCheckbox');
+const themeLabel = document.getElementById('themeLabel');
+const themeCheckboxLanding = document.getElementById('themeCheckboxLanding');
+const themeLabelLanding = document.getElementById('themeLabelLanding');
+
+function setTheme(isLight){
+  document.body.classList.toggle('theme-light', isLight);
+  themeCheckbox.checked = isLight;
+  themeLabel.textContent = isLight ? 'Light' : 'Dark';
+  themeCheckboxLanding.checked = isLight;
+  themeLabelLanding.textContent = isLight ? 'Light' : 'Dark';
+}
+themeCheckbox.addEventListener('change', () => setTheme(themeCheckbox.checked));
+themeCheckboxLanding.addEventListener('change', () => setTheme(themeCheckboxLanding.checked));
+
+// ---------- Game menu wiring ----------
+// ---------- Game menu ----------
+const gameMenu = document.getElementById('gameMenu');
+const gameMenuItems = document.getElementById('gameMenuItems');
+const gameMenuLabel = document.getElementById('gameMenuLabel');
+const manualInputEl = document.getElementById('manualInput');
+
+function renderGameMenu(filter=''){
+  const f = filter.trim().toLowerCase();
+  const matches = GAME_LIST.filter(g => !f || GAMES[g.id].name.toLowerCase().includes(f));
+
+  gameMenuItems.innerHTML = (matches.length === 0
+    ? `<div class="game-menu-item ghost">No matches</div>`
+    : matches.map(g => {
+        const active = g.id === currentGame ? ' active' : '';
+        return `<div class="game-menu-item${active}" data-game="${g.id}">${GAMES[g.id].name}</div>`;
+      }).join('')
+  ) + (f ? '' : `<div class="game-menu-item ghost">More games <span class="tag">soon</span></div>`);
+
+  gameMenuItems.querySelectorAll('.game-menu-item[data-game]').forEach(el => {
+    el.addEventListener('click', () => {
+      switchToGame(el.dataset.game);
+      gameMenu.removeAttribute('open');
+      document.getElementById('gameMenuSearch').value = '';
+      renderGameMenu();
+    });
+  });
+}
+document.getElementById('gameMenuSearch').addEventListener('input', e => renderGameMenu(e.target.value));
+
+// Shared by the in-app game dropdown, the landing page cards, and startApp —
+// one place that updates everything dependent on which game is selected.
+function switchToGame(gameId){
+  currentGame = gameId;
+  KEYWORD_INDEX = buildIndexForGame(currentGame);
+  gameMenuLabel.textContent = GAMES[currentGame].name;
+  manualInputEl.placeholder = `Try "${GAMES[currentGame].example}"`;
+  renderGameMenu();
+  renderHowToPlay();
+  // Collapse the How to Play panel on switch — it should be a deliberate
+  // look-up per game, not stay open showing the previous game's guide.
+  document.getElementById('howtoplay-panel').style.display = 'none';
+  document.getElementById('howtoplayToggle').classList.remove('open');
+  // Each game keeps its own history (see historyByGame), so switching just
+  // re-renders whatever this game's history already holds.
+  renderFeed();
+  if (document.getElementById('browse-panel').style.display === 'block'){
+    renderBrowseList(document.getElementById('browse-search').value);
+  }
+  updateMissedCount();
+  if (document.getElementById('missed-panel').style.display === 'block'){
+    renderMissedList();
+    renderFeedbackList();
+  }
+}
+renderGameMenu();
+manualInputEl.placeholder = `Try "${GAMES[currentGame].example}"`;
+
+// ---------- How to Play ----------
+function renderHowToPlay(){
+  const panel = document.getElementById('howtoplay-panel');
+  const label = document.getElementById('howtoplayLabel');
+  const guide = GAMES[currentGame].howToPlay;
+  label.textContent = `How to play ${GAMES[currentGame].name}`;
+  if (!guide || guide.length === 0){
+    panel.innerHTML = `<div class="landing-howto"><p class="missed-empty" style="border:none;">No quick-start guide yet for this game — try Browse All Rules below instead.</p></div>`;
+    return;
+  }
+  panel.innerHTML = `<div class="landing-howto">${guide.map((step, i) => `
+    <div class="howto-step">
+      <span class="howto-num">${i + 1}</span>
+      <span class="howto-text"><strong>${step.heading}:</strong> ${step.text}</span>
+    </div>
+  `).join('')}</div>`;
+}
+renderHowToPlay();
+
+document.getElementById('howtoplayToggle').addEventListener('click', () => {
+  const btn = document.getElementById('howtoplayToggle');
+  const panel = document.getElementById('howtoplay-panel');
+  const open = panel.style.display === 'block';
+  panel.style.display = open ? 'none' : 'block';
+  btn.classList.toggle('open', !open);
+});
+
+// ---------- Landing page ----------
+// Descriptions come from games-list.js (GAME_LIST) — nothing game-specific
+// is hardcoded here anymore.
+function renderLandingGrid(filter=''){
+  const grid = document.getElementById('landingGameGrid');
+  const f = filter.trim().toLowerCase();
+  const matches = GAME_LIST.filter(g =>
+    !f || GAMES[g.id].name.toLowerCase().includes(f) || (g.description || '').toLowerCase().includes(f)
+  );
+
+  if (matches.length === 0){
+    grid.innerHTML = `<div class="landing-no-results">No games match "${filter}" — try a different word, or clear the search.</div>`;
+    return;
+  }
+
+  grid.innerHTML = matches.map(g => `
+    <button class="landing-game-card" data-game="${g.id}">
+      <span class="lg-name">${GAMES[g.id].name}</span>
+      <span class="lg-desc">${g.description || ''}</span>
+    </button>
+  `).join('') + (f ? '' : `
+    <div class="landing-game-card ghost">
+      <span class="lg-name">More games</span>
+      <span class="lg-desc">Coming soon</span>
+    </div>
+  `);
+  grid.querySelectorAll('.landing-game-card[data-game]').forEach(el => {
+    el.addEventListener('click', () => startApp(el.dataset.game));
+  });
+}
+renderLandingGrid();
+document.getElementById('landingGameSearch').addEventListener('input', e => renderLandingGrid(e.target.value));
+
+function startApp(gameId){
+  switchToGame(gameId);
+  document.getElementById('landingView').style.display = 'none';
+  document.getElementById('appView').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function goHome(){
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('landingView').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+document.getElementById('backHomeBtn').addEventListener('click', goHome);
+document.getElementById('homeIconBtn').addEventListener('click', goHome);
+
+// ---------- Speech recognition ----------
+const micBtn = document.getElementById('micBtn');
+const micLabel = document.getElementById('micLabel');
+let recognition = null;
+let listening = false;
+
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micErrorNotice = document.getElementById('micErrorNotice');
+
+function disableMic(reason){
+  micBtn.disabled = true;
+  micBtn.style.opacity = '0.5';
+  micBtn.style.cursor = 'not-allowed';
+  if (reason){
+    micErrorNotice.textContent = reason;
+    micErrorNotice.style.display = 'block';
+  }
+}
+
+if (!window.isSecureContext){
+  // Mic access is blocked on file:// and plain http:// (non-localhost) pages,
+  // regardless of whether the browser otherwise supports SpeechRecognition.
+  document.getElementById('insecureNotice').style.display = 'block';
+  disableMic();
+} else if (!SpeechRecognitionAPI){
+  document.getElementById('unsupportedNotice').style.display = 'block';
+  disableMic();
+} else {
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++){
+      if (event.results[i].isFinal){
+        const transcript = event.results[i][0].transcript;
+        scanText(transcript);
+      }
+    }
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed'){
+      micErrorNotice.textContent = 'Microphone access was blocked. Check your browser\'s site permissions (usually a padlock or camera/mic icon in the address bar) and allow the microphone, then try again.';
+      micErrorNotice.style.display = 'block';
+      stopListening();
+    } else if (event.error === 'network'){
+      micErrorNotice.textContent = 'Speech recognition needs an internet connection (it runs through the browser\'s speech service). Check your connection and try again.';
+      micErrorNotice.style.display = 'block';
+      stopListening();
+    } else if (event.error !== 'no-speech' && event.error !== 'aborted'){
+      micErrorNotice.textContent = 'Speech recognition error: ' + event.error + '. Try again, or use the text box below.';
+      micErrorNotice.style.display = 'block';
+    }
+  };
+
+  recognition.onend = () => {
+    if (listening){
+      try { recognition.start(); } catch (e) { /* already starting */ }
+    }
+  };
+}
+
+micBtn.addEventListener('click', () => {
+  if (!SpeechRecognitionAPI) return;
+  listening ? stopListening() : startListening();
+});
+
+function startListening(){
+  try {
+    recognition.start();
+    listening = true;
+    micBtn.classList.add('live');
+    micLabel.textContent = 'Listening…';
+    micErrorNotice.style.display = 'none';
+  } catch(e){
+    micErrorNotice.textContent = 'Could not start listening (' + e.message + '). Try reloading the page.';
+    micErrorNotice.style.display = 'block';
+  }
+}
+function stopListening(){
+  listening = false;
+  try { recognition.stop(); } catch(e){}
+  micBtn.classList.remove('live');
+  micLabel.textContent = 'Listen';
+}
+
+// ---------- Landing page voice search ----------
+// A separate, simpler recognition instance from the main app's mic button —
+// this is a one-shot "say a game name" interaction (non-continuous, stops
+// itself after a single result) that fills the search box rather than
+// directly switching games, so a misheard word never accidentally jumps you
+// into the wrong game.
+const landingMicBtn = document.getElementById('landingMicBtn');
+let landingRecognition = null;
+let landingListening = false;
+
+if (!window.isSecureContext || !SpeechRecognitionAPI){
+  landingMicBtn.disabled = true;
+  landingMicBtn.style.opacity = '0.5';
+  landingMicBtn.style.cursor = 'not-allowed';
+} else {
+  landingRecognition = new SpeechRecognitionAPI();
+  landingRecognition.continuous = false;
+  landingRecognition.interimResults = false;
+  landingRecognition.lang = 'en-US';
+
+  landingRecognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    const searchInput = document.getElementById('landingGameSearch');
+    searchInput.value = transcript;
+    renderLandingGrid(transcript);
+  };
+
+  landingRecognition.onend = () => {
+    landingListening = false;
+    landingMicBtn.classList.remove('live');
+  };
+
+  landingRecognition.onerror = () => {
+    landingListening = false;
+    landingMicBtn.classList.remove('live');
+  };
+}
+
+landingMicBtn.addEventListener('click', () => {
+  if (!landingRecognition) return;
+  if (landingListening){
+    try { landingRecognition.stop(); } catch(e){}
+    landingListening = false;
+    landingMicBtn.classList.remove('live');
+  } else {
+    try {
+      landingRecognition.start();
+      landingListening = true;
+      landingMicBtn.classList.add('live');
+    } catch(e){ /* already starting */ }
+  }
+});
+
+// ---------- Browse all rules ----------
+const browseToggle = document.getElementById('browseToggle');
+const browsePanel = document.getElementById('browse-panel');
+const browseList = document.getElementById('browse-list');
+const browseSearch = document.getElementById('browse-search');
+
+function renderBrowseList(filter=''){
+  const f = filter.toLowerCase();
+  browseList.innerHTML = '';
+  GAMES[currentGame].rules
+    .filter(r => !f || r.title.toLowerCase().includes(f) || r.text.toLowerCase().includes(f) || r.keywords.some(k => k.includes(f)))
+    .forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'browse-item';
+      item.innerHTML = `
+        <div class="card-top">
+          <span class="card-title">${r.title}</span>
+          <span class="card-phase${r.phase === 'Clarification' ? ' clarification' : ''}">${r.phase}</span>
+        </div>
+        <p class="card-text">${linkifyText(r.text, currentGame, r.id)}</p>
+        ${feedbackWidget(r)}
+        ${seeAlsoLinks(r.id)}
+        ${verifyLink()}
+      `;
+      browseList.appendChild(item);
+      wireSeeAlsoLinks(item);
+      wireFeedbackButtons(item);
+      wireInlineLinks(item);
+    });
+}
+
+browseToggle.addEventListener('click', () => {
+  const open = browsePanel.style.display === 'block';
+  browsePanel.style.display = open ? 'none' : 'block';
+  browseToggle.classList.toggle('open', !open);
+  if (!open) renderBrowseList();
+});
+browseSearch.addEventListener('input', e => renderBrowseList(e.target.value));
+
+// ---------- Feedback & missed questions panel ----------
+const missedToggle = document.getElementById('missedToggle');
+const missedPanel = document.getElementById('missed-panel');
+const missedList = document.getElementById('missed-list');
+const feedbackListEl = document.getElementById('feedback-list');
+const missedCount = document.getElementById('missedCount');
+
+function formatRelativeTime(ts){
+  const diffMs = Date.now() - ts;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
+
+function updateMissedCount(){
+  const n = UnresolvedLog.countForGame(currentGame) + FeedbackLog.countForGame(currentGame);
+  missedCount.textContent = n > 0 ? n : '';
+  const label = document.getElementById('missedGameLabel');
+  if (label) label.textContent = GAMES[currentGame].name;
+}
+
+function renderMissedList(){
+  const entries = UnresolvedLog.getForGame(currentGame);
+  if (entries.length === 0){
+    missedList.innerHTML = `<div class="missed-empty">Nothing logged for ${GAMES[currentGame].name} yet — this fills up as typed questions come back with no match.</div>`;
+    return;
+  }
+  missedList.innerHTML = entries.map(e => `
+    <div class="missed-item">
+      <p class="missed-text">"${e.text}"</p>
+      <span class="missed-meta">${formatRelativeTime(e.ts)}</span>
+    </div>
+  `).join('');
+}
+
+function renderFeedbackList(){
+  const entries = FeedbackLog.getForGame(currentGame);
+  if (entries.length === 0){
+    feedbackListEl.innerHTML = `<div class="missed-empty">No votes for ${GAMES[currentGame].name} yet — thumbs up/down on any rule card will show up here.</div>`;
+    return;
+  }
+  feedbackListEl.innerHTML = entries.map(e => `
+    <div class="feedback-item">
+      <span class="feedback-vote ${e.vote}">${e.vote === 'up' ? 'CORRECT' : 'ISSUE'}</span>
+      <span class="feedback-item-title">${e.ruleTitle}</span>
+      ${e.comment ? `<p class="feedback-item-comment">"${e.comment}"</p>` : ''}
+      <span class="feedback-item-meta">${formatRelativeTime(e.ts)}</span>
+    </div>
+  `).join('');
+}
+
+function renderMissedPanel(){
+  updateMissedCount();
+  renderMissedList();
+  renderFeedbackList();
+}
+
+missedToggle.addEventListener('click', () => {
+  const open = missedPanel.style.display === 'block';
+  missedPanel.style.display = open ? 'none' : 'block';
+  missedToggle.classList.toggle('open', !open);
+  if (!open) renderMissedPanel();
+});
+
+document.getElementById('missedExportBtn').addEventListener('click', () => {
+  // Export is intentionally NOT scoped to the current game — it's meant for
+  // a periodic batch review across everything, regardless of what's on screen.
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    unansweredQuestions: UnresolvedLog.getAll(),
+    ruleFeedback: FeedbackLog.getAll(),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `rulerunner-feedback-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('missedClearBtn').addEventListener('click', () => {
+  const gameName = GAMES[currentGame].name;
+  if (confirm(`Clear logged unanswered questions and rule feedback for ${gameName} only? (Other games are unaffected.)`)){
+    UnresolvedLog.clearGame(currentGame);
+    FeedbackLog.clearGame(currentGame);
+    renderMissedPanel();
+  }
+});
+
+updateMissedCount();
+</script>
+</body>
+</html>
